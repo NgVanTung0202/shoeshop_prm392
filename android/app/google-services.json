@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "354746480588",
+    "project_id": "shoe-shop-prm392",
+    "storage_bucket": "shoe-shop-prm392.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:354746480588:android:cec7e01bc248eb3adfcf69",
+        "android_client_info": {
+          "package_name": "com.example.shoeshop_prm392"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAdQGc6oRH3_dfvy7INXKmE4O9k65k40WE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
