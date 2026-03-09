@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/product_model.dart';
-import 'admin_products_screen.dart'; // Đảm bảo import đúng file quản lý sản phẩm
+import 'admin_products_screen.dart';
 
 class AdminHomeScreen extends StatelessWidget {
   const AdminHomeScreen({super.key});
@@ -10,59 +10,102 @@ class AdminHomeScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Tổng quan sản phẩm", style: TextStyle(color: Colors.white)),
+        title: const Text("Tổng quan kho hàng", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
         backgroundColor: Colors.blue,
+        elevation: 2,
       ),
       body: StreamBuilder<QuerySnapshot>(
-        // Lắng nghe dữ liệu từ collection 'products'
+
         stream: FirebaseFirestore.instance.collection('products').snapshots(),
         builder: (context, snapshot) {
-          if (snapshot.hasError) return const Center(child: Text("Đã xảy ra lỗi!"));
-          if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
+          if (snapshot.hasError) return const Center(child: Text("Đã xảy ra lỗi kết nối!"));
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
 
-          // Chuyển đổi dữ liệu từ Firestore sang danh sách ProductModel mới (có sizesStock)
+          // Chuyển đổi dữ liệu sang ProductModel (đã bao gồm field 'brand')
           List<ProductModel> products = snapshot.data!.docs.map((doc) {
             return ProductModel.fromFirestore(doc.id, doc.data() as Map<String, dynamic>);
           }).toList();
 
-          if (products.isEmpty) return const Center(child: Text("Chưa có sản phẩm nào."));
+          if (products.isEmpty) {
+            return const Center(child: Text("Kho hàng trống. Hãy thêm sản phẩm!"));
+          }
 
           return ListView.builder(
+            padding: const EdgeInsets.symmetric(vertical: 10),
             itemCount: products.length,
             itemBuilder: (context, index) {
               final p = products[index];
+              final totalStock = p.getTotalStock();
 
               return Card(
-                margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                elevation: 3,
+                margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 child: ListTile(
+                  contentPadding: const EdgeInsets.all(10),
                   leading: ClipRRect(
                     borderRadius: BorderRadius.circular(8),
-                    child: Image.network(
-                      p.imageUrl,
-                      width: 50,
-                      height: 50,
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => const Icon(Icons.image_not_supported),
-                    ),
-                  ),
-                  title: Text(p.name, style: const TextStyle(fontWeight: FontWeight.bold)),
-                  // Sửa lỗi hiển thị stock: Dùng hàm getTotalStock() từ Model mới
-                  subtitle: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text("Giá: ${p.price.toInt()}đ"),
-                      Text(
-                        "Tổng tồn kho: ${p.getTotalStock()} đôi",
-                        style: TextStyle(
-                            color: p.getTotalStock() == 0 ? Colors.red : Colors.green,
-                            fontWeight: FontWeight.w500
+                    child: Hero(
+                      tag: p.id, // Tạo hiệu ứng chuyển cảnh mượt
+                      child: Image.network(
+                        p.imageUrl,
+                        width: 60,
+                        height: 60,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => Container(
+                          width: 60, height: 60, color: Colors.grey[300],
+                          child: const Icon(Icons.image_not_supported),
                         ),
                       ),
-                    ],
+                    ),
                   ),
-                  trailing: const Icon(Icons.chevron_right, color: Colors.blue),
+                  title: Text(
+                    p.name,
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  subtitle: Padding(
+                    padding: const EdgeInsets.only(top: 4.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Hiển thị Brand và Giá
+                        Text(
+                          "Hãng: ${p.brand.toUpperCase()}",
+                          style: TextStyle(color: Colors.blueGrey[700], fontWeight: FontWeight.w500),
+                        ),
+                        Text(
+                          "Giá: ${p.price.toInt()} VNĐ",
+                          style: const TextStyle(color: Colors.black87),
+                        ),
+                        const SizedBox(height: 4),
+                        // Hiển thị trạng thái kho hàng
+                        Row(
+                          children: [
+                            Icon(
+                                Icons.inventory_2_outlined,
+                                size: 16,
+                                color: totalStock == 0 ? Colors.red : Colors.green
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              "Tồn kho: $totalStock đôi",
+                              style: TextStyle(
+                                  color: totalStock == 0 ? Colors.red : Colors.green[700],
+                                  fontWeight: FontWeight.bold
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  trailing: const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
                   onTap: () {
-                    // Chuyển sang màn hình quản lý chi tiết (AdminProductsScreen) khi bấm vào
+
                     Navigator.push(
                       context,
                       MaterialPageRoute(builder: (context) => const AdminProductsScreen()),

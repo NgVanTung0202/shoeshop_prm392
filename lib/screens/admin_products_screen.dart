@@ -18,9 +18,9 @@ class _AdminProductsScreenState extends State<AdminProductsScreen> {
   final FirestoreService _fs = FirestoreService();
   String? selectedCategoryId;
   File? _selectedImage;
-  bool _isSaving = false; // Trạng thái chờ khi upload ảnh và lưu
+  bool _isSaving = false;
 
-  // Danh sách size từ 36 đến 44
+  // Danh sách size cần quản lý
   final List<String> shoeSizes = ['36', '37', '38', '39', '40', '41', '42', '43', '44'];
 
   Future<void> _pickImage(StateSetter setDialogState) async {
@@ -35,11 +35,14 @@ class _AdminProductsScreenState extends State<AdminProductsScreen> {
 
   void _showProductForm({ProductModel? product}) {
     final isEditing = product != null;
+
+    // Các Controller cho thông tin chữ
     final nameController = TextEditingController(text: isEditing ? product.name : '');
+    final brandController = TextEditingController(text: isEditing ? product.brand : ''); // THÊM BRAND
     final priceController = TextEditingController(text: isEditing ? product.price.toString() : '');
     final descController = TextEditingController(text: isEditing ? product.description : '');
 
-    // Khởi tạo controller cho từng size
+    // Controller cho kho hàng theo từng size
     final Map<String, TextEditingController> sizeControllers = {
       for (var size in shoeSizes)
         size: TextEditingController(
@@ -64,7 +67,7 @@ class _AdminProductsScreenState extends State<AdminProductsScreen> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  // --- KHU VỰC CHỌN ẢNH ---
+                  // --- CHỌN ẢNH ---
                   GestureDetector(
                     onTap: _isSaving ? null : () => _pickImage(setDialogState),
                     child: Container(
@@ -100,6 +103,7 @@ class _AdminProductsScreenState extends State<AdminProductsScreen> {
                     },
                   ),
                   TextField(controller: nameController, decoration: const InputDecoration(labelText: "Tên giày")),
+                  TextField(controller: brandController, decoration: const InputDecoration(labelText: "Thương hiệu (Brand)")), // UI CHO BRAND
                   TextField(controller: priceController, decoration: const InputDecoration(labelText: "Giá (VNĐ)"), keyboardType: TextInputType.number),
                   TextField(controller: descController, decoration: const InputDecoration(labelText: "Mô tả ngắn")),
 
@@ -107,6 +111,7 @@ class _AdminProductsScreenState extends State<AdminProductsScreen> {
                   const Align(alignment: Alignment.centerLeft, child: Text("Kho hàng theo Size:", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.blue))),
                   const SizedBox(height: 10),
 
+                  // --- GRID NHẬP SIZE ---
                   Wrap(
                     spacing: 8,
                     runSpacing: 8,
@@ -114,7 +119,11 @@ class _AdminProductsScreenState extends State<AdminProductsScreen> {
                       width: 70,
                       child: TextField(
                         controller: sizeControllers[size],
-                        decoration: InputDecoration(labelText: "S-$size", border: const OutlineInputBorder(), contentPadding: const EdgeInsets.symmetric(horizontal: 8)),
+                        decoration: InputDecoration(
+                            labelText: "S-$size",
+                            border: const OutlineInputBorder(),
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 8)
+                        ),
                         keyboardType: TextInputType.number,
                       ),
                     )).toList(),
@@ -128,7 +137,7 @@ class _AdminProductsScreenState extends State<AdminProductsScreen> {
             ElevatedButton(
               style: ElevatedButton.styleFrom(backgroundColor: Colors.blue),
               onPressed: _isSaving ? null : () async {
-                if (selectedCategoryId == null || nameController.text.isEmpty) {
+                if (selectedCategoryId == null || nameController.text.isEmpty || brandController.text.isEmpty) {
                   ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Vui lòng điền đủ thông tin!")));
                   return;
                 }
@@ -143,15 +152,16 @@ class _AdminProductsScreenState extends State<AdminProductsScreen> {
                     finalImageUrl = await _fs.uploadImage(_selectedImage!);
                   }
 
-                  // 2. Gom dữ liệu size
+                  // 2. Gom dữ liệu tồn kho từ các controller
                   Map<String, int> inventory = {
                     for (var s in shoeSizes) s: int.tryParse(sizeControllers[s]!.text) ?? 0
                   };
 
-                  // 3. Tạo model và lưu Firestore
+                  // 3. Đóng gói dữ liệu vào Model
                   final p = ProductModel(
                     id: isEditing ? product.id : '',
                     name: nameController.text,
+                    brand: brandController.text, // LƯU BRAND
                     price: double.tryParse(priceController.text) ?? 0,
                     categoryId: selectedCategoryId!,
                     imageUrl: finalImageUrl,
@@ -159,6 +169,7 @@ class _AdminProductsScreenState extends State<AdminProductsScreen> {
                     sizesStock: inventory,
                   );
 
+                  // 4. Đẩy lên Firestore
                   isEditing ? await _fs.updateProduct(p) : await _fs.addProduct(p);
 
                   if (mounted) Navigator.pop(context);
@@ -202,10 +213,14 @@ class _AdminProductsScreenState extends State<AdminProductsScreen> {
               return Card(
                 margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                 child: ListTile(
-                  leading: Image.network(p.imageUrl, width: 50, height: 50, fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => const Icon(Icons.image)),
+                  leading: ClipRRect(
+                    borderRadius: BorderRadius.circular(5),
+                    child: Image.network(p.imageUrl, width: 50, height: 50, fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => const Icon(Icons.image)),
+                  ),
                   title: Text(p.name, style: const TextStyle(fontWeight: FontWeight.bold)),
-                  subtitle: Text("Tổng kho: ${p.getTotalStock()} | Giá: ${p.price.toInt()}đ"),
+                  // HIỂN THỊ THÊM BRAND Ở SUBTITLE
+                  subtitle: Text("${p.brand} | Kho: ${p.getTotalStock()} | ${p.price.toInt()}đ"),
                   trailing: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
