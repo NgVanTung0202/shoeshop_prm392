@@ -4,10 +4,10 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'firebase_options.dart';
 
-// Import các màn hình trong project của bạn
+
 import 'screens/login_screen.dart';
 import 'screens/admin_products_screen.dart';
-import 'screens/customer_home_screen.dart'; // Đảm bảo bạn đã tạo file này
+import 'screens/customer_home_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
