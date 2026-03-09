@@ -1,3 +1,4 @@
+
 class ProductModel {
   String id;
   String name;
@@ -5,7 +6,7 @@ class ProductModel {
   String categoryId;
   String imageUrl;
   String description;
-  int stock;
+  Map<String, int> sizesStock;
 
   ProductModel({
     required this.id,
@@ -14,7 +15,7 @@ class ProductModel {
     required this.categoryId,
     required this.imageUrl,
     required this.description,
-    required this.stock,
+    required this.sizesStock,
   });
 
   // Chuyển dữ liệu từ Firestore Document sang Object trong Flutter
@@ -26,11 +27,11 @@ class ProductModel {
       categoryId: data['categoryId'] ?? '',
       imageUrl: data['imageUrl'] ?? '',
       description: data['description'] ?? '',
-      stock: data['stock'] ?? 0,
+      sizesStock: Map<String, int>.from(data['sizes_stock'] ?? {}),
     );
   }
 
-  // Chuyển từ Object Flutter sang Map để đẩy lên Firestore (Dùng cho UC16 - Add/Update)
+  // Chuyển từ Object Flutter sang Map để đẩy lên Firestore
   Map<String, dynamic> toMap() {
     return {
       'name': name,
@@ -38,7 +39,12 @@ class ProductModel {
       'categoryId': categoryId,
       'imageUrl': imageUrl,
       'description': description,
-      'stock': stock,
+      'sizes_stock': sizesStock, // Đẩy cả Map lên thay vì một con số duy nhất
     };
+  }
+
+  // Hàm tiện ích để tính tổng số lượng tồn kho nếu cần hiển thị con số tổng quát
+  int getTotalStock() {
+    return sizesStock.values.fold(0, (sum, quantity) => sum + quantity);
   }
 }
