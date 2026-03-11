@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import '../models/product_model.dart';
@@ -13,6 +14,10 @@ class FirestoreService {
   /// Upload ảnh lên Storage và trả về URL để lưu vào Firestore
   Future<String> uploadImage(File imageFile) async {
     try {
+      if (kIsWeb) {
+        throw UnsupportedError(
+            'uploadImage với File không hỗ trợ trên Web. Vui lòng dùng mobile/emulator.');
+      }
       // Tạo tên file duy nhất bằng timestamp
       String fileName = DateTime.now().millisecondsSinceEpoch.toString();
       Reference ref = _storage.ref().child('products').child('$fileName.jpg');
@@ -46,7 +51,14 @@ class FirestoreService {
         snap.docs.map((doc) => CategoryModel.fromDoc(doc.id, doc.data())).toList());
   }
 
-  Future<void> addCategory(String name) => _db.collection('categories').add({'name': name});
+  Future<void> addCategory(String name, {String imageUrl = ''}) =>
+      _db.collection('categories').add({'name': name, 'imageUrl': imageUrl});
+
+  Future<void> updateCategory(String id, String name, {String? imageUrl}) {
+    final data = <String, dynamic>{'name': name};
+    if (imageUrl != null) data['imageUrl'] = imageUrl;
+    return _db.collection('categories').doc(id).update(data);
+  }
 
   Future<void> deleteCategory(String id) => _db.collection('categories').doc(id).delete();
 

@@ -6,7 +6,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'firebase_options.dart';
 
 import 'screens/login_screen.dart';
-import 'screens/admin_products_screen.dart';
+import 'screens/admin_home_screen.dart';
 import 'screens/customer_home_screen.dart';
 
 void main() async {
@@ -42,7 +42,7 @@ class MyApp extends StatelessWidget {
       // Định nghĩa các tuyến đường (routes) để dễ dàng chuyển màn hình
       routes: {
         '/login': (context) => const LoginScreen(),
-        '/admin': (context) => const AdminProductsScreen(),
+        '/admin': (context) => const AdminHomeScreen(),
         '/home': (context) => const CustomerHomeScreen(),
          // '/staff': (context) => const StaffHomeScreen(),
       },
