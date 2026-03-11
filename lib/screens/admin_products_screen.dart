@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import '../models/product_model.dart';
 import '../models/category_model.dart';
 import '../services/firestore_service.dart';
-import 'admin_category_screen.dart';
+import '../widgets/admin_drawer.dart';
 
 class AdminProductsScreen extends StatefulWidget {
   const AdminProductsScreen({super.key});
@@ -19,18 +19,64 @@ class _AdminProductsScreenState extends State<AdminProductsScreen> {
   String? selectedCategoryId;
   File? _selectedImage;
   bool _isSaving = false;
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
+  String? _filterCategoryId;
 
   // Danh sách size cần quản lý
   final List<String> shoeSizes = ['36', '37', '38', '39', '40', '41', '42', '43', '44'];
 
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
   Future<void> _pickImage(StateSetter setDialogState) async {
     final picker = ImagePicker();
-    final pickedFile = await picker.pickImage(source: ImageSource.gallery, imageQuality: 70);
+    final pickedFile =
+        await picker.pickImage(source: ImageSource.gallery, imageQuality: 70);
     if (pickedFile != null) {
+      if (kIsWeb) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text(
+                  "Upload ảnh chỉ hỗ trợ tốt trên mobile/emulator. Trên web vui lòng dùng ảnh đã có URL."),
+            ),
+          );
+        }
+        return;
+      }
       setDialogState(() {
         _selectedImage = File(pickedFile.path);
       });
     }
+  }
+
+  void _confirmDelete(ProductModel product) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        title: const Text("Xác nhận xóa"),
+        content: Text('Bạn có chắc muốn xóa sản phẩm "${product.name}"?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("Hủy"),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () async {
+              await _fs.deleteProduct(product.id, product.imageUrl);
+              if (mounted) Navigator.pop(context);
+            },
+            child: const Text("Xóa"),
+          ),
+        ],
+      ),
+    );
   }
 
   void _showProductForm({ProductModel? product}) {
@@ -58,9 +104,14 @@ class _AdminProductsScreenState extends State<AdminProductsScreen> {
       barrierDismissible: !_isSaving,
       builder: (context) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-          title: Text(isEditing ? "Cập nhật sản phẩm" : "Thêm giày mới",
-              style: const TextStyle(color: Colors.blue, fontWeight: FontWeight.bold)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: Text(
+            isEditing ? "Cập nhật sản phẩm" : "Thêm giày mới",
+            style: const TextStyle(
+              fontWeight: FontWeight.w600,
+              color: Colors.black,
+            ),
+          ),
           content: SizedBox(
             width: double.maxFinite,
             child: SingleChildScrollView(
@@ -73,18 +124,27 @@ class _AdminProductsScreenState extends State<AdminProductsScreen> {
                     child: Container(
                       height: 140, width: double.infinity,
                       decoration: BoxDecoration(
-                        color: Colors.grey[200],
+                        color: const Color(0xFFF0F1F5),
                         borderRadius: BorderRadius.circular(10),
-                        border: Border.all(color: Colors.blue.shade100),
                       ),
-                      child: _selectedImage != null
+                      child: (!kIsWeb && _selectedImage != null)
                           ? Image.file(_selectedImage!, fit: BoxFit.cover)
-                          : (isEditing
-                          ? Image.network(product.imageUrl, fit: BoxFit.cover)
-                          : const Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [Icon(Icons.add_a_photo, color: Colors.blue, size: 40), Text("Thêm ảnh giày")],
-                      )),
+                          : (isEditing && product != null && product.imageUrl.isNotEmpty)
+                              ? Image.network(product.imageUrl, fit: BoxFit.cover)
+                              : const Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(Icons.add_a_photo_outlined,
+                                        color: Colors.black54, size: 32),
+                                    SizedBox(height: 4),
+                                    Text(
+                                      "Thêm ảnh giày",
+                                      style: TextStyle(
+                                        color: Colors.black87,
+                                      ),
+                                    ),
+                                  ],
+                                ),
                     ),
                   ),
                   const SizedBox(height: 15),
@@ -108,7 +168,15 @@ class _AdminProductsScreenState extends State<AdminProductsScreen> {
                   TextField(controller: descController, decoration: const InputDecoration(labelText: "Mô tả ngắn")),
 
                   const SizedBox(height: 20),
-                  const Align(alignment: Alignment.centerLeft, child: Text("Kho hàng theo Size:", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.blue))),
+              const Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    "Kho hàng theo Size:",
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black,
+                    ),
+                  )),
                   const SizedBox(height: 10),
 
                   // --- GRID NHẬP SIZE ---
@@ -133,9 +201,20 @@ class _AdminProductsScreenState extends State<AdminProductsScreen> {
             ),
           ),
           actions: [
-            TextButton(onPressed: _isSaving ? null : () => Navigator.pop(context), child: const Text("Hủy")),
+            TextButton(
+              onPressed: _isSaving ? null : () => Navigator.pop(context),
+              child: const Text(
+                "Hủy",
+                style: TextStyle(color: Colors.black54),
+              ),
+            ),
             ElevatedButton(
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.blue),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.black,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(24),
+                ),
+              ),
               onPressed: _isSaving ? null : () async {
                 if (selectedCategoryId == null || nameController.text.isEmpty || brandController.text.isEmpty) {
                   ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Vui lòng điền đủ thông tin!")));
@@ -147,8 +226,8 @@ class _AdminProductsScreenState extends State<AdminProductsScreen> {
                 try {
                   String finalImageUrl = isEditing ? product.imageUrl : '';
 
-                  // 1. Upload ảnh nếu có chọn ảnh mới
-                  if (_selectedImage != null) {
+                  // 1. Upload ảnh nếu có chọn ảnh mới (chỉ mobile)
+                  if (_selectedImage != null && !kIsWeb) {
                     finalImageUrl = await _fs.uploadImage(_selectedImage!);
                   }
 
@@ -193,46 +272,249 @@ class _AdminProductsScreenState extends State<AdminProductsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Kho Sản Phẩm", style: TextStyle(color: Colors.white)),
-        backgroundColor: Colors.blue,
+        leading: Builder(
+          builder: (ctx) => IconButton(
+            icon: const Icon(Icons.menu),
+            onPressed: () => Scaffold.of(ctx).openDrawer(),
+          ),
+        ),
+        elevation: 0,
+        backgroundColor: Colors.white,
+        foregroundColor: Colors.black87,
+        centerTitle: true,
+        title: const Text(
+          "Kho Sản Phẩm",
+          style: TextStyle(
+            fontWeight: FontWeight.w600,
+          ),
+        ),
       ),
+      drawer: const AdminDrawer(selected: AdminMenuItem.products),
       floatingActionButton: FloatingActionButton(
         onPressed: () => _showProductForm(),
-        backgroundColor: Colors.blue,
+        backgroundColor: Colors.black,
         child: const Icon(Icons.add, color: Colors.white),
       ),
-      body: StreamBuilder<List<ProductModel>>(
-        stream: _fs.getProducts(),
-        builder: (context, snapshot) {
-          if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
-          final products = snapshot.data!;
-          return ListView.builder(
-            itemCount: products.length,
-            itemBuilder: (context, index) {
-              final p = products[index];
-              return Card(
-                margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                child: ListTile(
-                  leading: ClipRRect(
-                    borderRadius: BorderRadius.circular(5),
-                    child: Image.network(p.imageUrl, width: 50, height: 50, fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => const Icon(Icons.image)),
+      backgroundColor: const Color(0xFFF5F6FA),
+      body: Container(
+        color: const Color(0xFFF5F6FA),
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+              child: TextField(
+                controller: _searchController,
+                decoration: InputDecoration(
+                  hintText: "Tìm kiếm theo tên hoặc thương hiệu...",
+                  prefixIcon: const Icon(Icons.search),
+                  filled: true,
+                  fillColor: Colors.white,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(30),
+                    borderSide: BorderSide.none,
                   ),
-                  title: Text(p.name, style: const TextStyle(fontWeight: FontWeight.bold)),
-                  // HIỂN THỊ THÊM BRAND Ở SUBTITLE
-                  subtitle: Text("${p.brand} | Kho: ${p.getTotalStock()} | ${p.price.toInt()}đ"),
-                  trailing: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      IconButton(icon: const Icon(Icons.edit, color: Colors.blue), onPressed: () => _showProductForm(product: p)),
-                      IconButton(icon: const Icon(Icons.delete, color: Colors.red), onPressed: () => _fs.deleteProduct(p.id, p.imageUrl)),
-                    ],
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(30),
+                    borderSide: BorderSide.none,
                   ),
                 ),
-              );
-            },
-          );
-        },
+                onChanged: (value) {
+                  setState(() {
+                    _searchQuery = value.toLowerCase();
+                  });
+                },
+              ),
+            ),
+            SizedBox(
+              height: 46,
+              child: StreamBuilder<List<CategoryModel>>(
+                stream: _fs.getCategories(),
+                builder: (context, snapshot) {
+                  final categories = snapshot.data ?? [];
+                  return ListView(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                    scrollDirection: Axis.horizontal,
+                    children: [
+                      ChoiceChip(
+                        label: const Text("Tất cả"),
+                        selected: _filterCategoryId == null,
+                        selectedColor: Colors.black,
+                        labelStyle: TextStyle(
+                          color: _filterCategoryId == null
+                              ? Colors.white
+                              : Colors.black87,
+                          fontWeight: FontWeight.w500,
+                        ),
+                        backgroundColor: Colors.white,
+                        onSelected: (_) {
+                          setState(() {
+                            _filterCategoryId = null;
+                          });
+                        },
+                      ),
+                      const SizedBox(width: 8),
+                      ...categories.map(
+                        (cat) => Padding(
+                          padding: const EdgeInsets.only(right: 8),
+                          child: ChoiceChip(
+                            label: Text(cat.name),
+                            selected: _filterCategoryId == cat.id,
+                            selectedColor: Colors.black,
+                            labelStyle: TextStyle(
+                              color: _filterCategoryId == cat.id
+                                  ? Colors.white
+                                  : Colors.black87,
+                              fontWeight: FontWeight.w500,
+                            ),
+                            backgroundColor: Colors.white,
+                            onSelected: (_) {
+                              setState(() {
+                                _filterCategoryId = cat.id;
+                              });
+                            },
+                          ),
+                        ),
+                      ),
+                    ],
+                  );
+                },
+              ),
+            ),
+            Expanded(
+              child: StreamBuilder<List<ProductModel>>(
+                stream: _fs.getProducts(),
+                builder: (context, snapshot) {
+                  if (!snapshot.hasData) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
+                  List<ProductModel> products = snapshot.data!;
+
+                  if (_searchQuery.isNotEmpty) {
+                    products = products.where((p) {
+                      final name = p.name.toLowerCase();
+                      final brand = p.brand.toLowerCase();
+                      return name.contains(_searchQuery) || brand.contains(_searchQuery);
+                    }).toList();
+                  }
+
+                  if (_filterCategoryId != null) {
+                    products = products
+                        .where((p) => p.categoryId == _filterCategoryId)
+                        .toList();
+                  }
+
+                  if (products.isEmpty) {
+                    return const Center(
+                      child: Text(
+                        "Không tìm thấy sản phẩm nào",
+                        style: TextStyle(
+                          fontSize: 16,
+                          color: Colors.blueGrey,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    );
+                  }
+
+                  return ListView.builder(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    itemCount: products.length,
+                    itemBuilder: (context, index) {
+                      final p = products[index];
+                      return Container(
+                        margin: const EdgeInsets.symmetric(vertical: 6),
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(24),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.03),
+                              blurRadius: 12,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        child: Row(
+                          children: [
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(18),
+                              child: Image.network(
+                                p.imageUrl,
+                                width: 72,
+                                height: 72,
+                                fit: BoxFit.cover,
+                                errorBuilder: (_, __, ___) => Container(
+                                  width: 72,
+                                  height: 72,
+                                  color: const Color(0xFFF0F1F5),
+                                  child: const Icon(
+                                    Icons.image_outlined,
+                                    color: Colors.grey,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    p.name,
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 16,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    p.brand,
+                                    style: const TextStyle(
+                                      color: Colors.black87,
+                                      fontSize: 13,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    "Kho: ${p.getTotalStock()}   |   ${p.price.toInt()}đ",
+                                    style: const TextStyle(
+                                      fontSize: 12,
+                                      color: Colors.black54,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            IconButton(
+                              icon: const Icon(
+                                Icons.edit_outlined,
+                                color: Colors.black54,
+                              ),
+                              onPressed: () => _showProductForm(product: p),
+                            ),
+                            IconButton(
+                              icon: const Icon(
+                                Icons.delete_outline,
+                                color: Colors.red,
+                              ),
+                              onPressed: () => _confirmDelete(p),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
