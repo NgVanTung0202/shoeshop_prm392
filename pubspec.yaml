@@ -23,6 +23,9 @@ dependencies:
   provider:
 
   image_picker: ^1.0.7
+  flutter_rating_bar: ^4.0.1
+  fl_chart: ^1.1.1
+  intl: ^0.20.2
 dev_dependencies:
   flutter_test:
     sdk: flutter

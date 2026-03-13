@@ -5,7 +5,9 @@ import 'dart:io';
 import '../models/product_model.dart';
 import '../models/category_model.dart';
 import '../services/firestore_service.dart';
+import '../services/db_seeder.dart';
 import '../widgets/admin_drawer.dart';
+import 'admin_dashboard_screen.dart';
 
 class AdminProductsScreen extends StatefulWidget {
   const AdminProductsScreen({super.key});
@@ -288,6 +290,33 @@ class _AdminProductsScreenState extends State<AdminProductsScreen> {
             fontWeight: FontWeight.w600,
           ),
         ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.data_object),
+            tooltip: 'Tạo Data Mẫu (Đơn hàng)',
+            onPressed: () async {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Đang tạo dữ liệu mẫu...')),
+              );
+              await DbSeeder.seedAll();
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Tạo dữ liệu xong! Bạn có thể xem biểu đồ.')),
+                );
+              }
+            },
+          ),
+          IconButton(
+            icon: const Icon(Icons.bar_chart),
+            tooltip: 'Thống Kê',
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => AdminDashboardScreen()),
+              );
+            },
+          ),
+        ],
       ),
       drawer: const AdminDrawer(selected: AdminMenuItem.products),
       floatingActionButton: FloatingActionButton(
