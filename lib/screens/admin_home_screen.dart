@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/product_model.dart';
 import 'admin_products_screen.dart';
+import 'admin_dashboard_screen.dart';
 
 class AdminHomeScreen extends StatelessWidget {
   const AdminHomeScreen({super.key});
@@ -10,9 +11,19 @@ class AdminHomeScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Tổng quan kho hàng", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        title: const Text("Tổng quan kho", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
         backgroundColor: Colors.blue,
         elevation: 2,
+        iconTheme: const IconThemeData(color: Colors.white),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.bar_chart),
+            tooltip: 'Dashboard Thống Kê',
+            onPressed: () {
+              Navigator.push(context, MaterialPageRoute(builder: (ctx) => AdminDashboardScreen()));
+            },
+          ),
+        ],
       ),
       body: StreamBuilder<QuerySnapshot>(
 
