@@ -10,8 +10,11 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  
+  flutter_rating_bar: ^4.0.1
 
   cupertino_icons: ^1.0.8
+
 
   # Firebase
   firebase_core: ^2.30.0

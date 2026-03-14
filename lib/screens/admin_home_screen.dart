@@ -9,14 +9,27 @@ class AdminHomeScreen extends StatefulWidget {
 }
 
 class _AdminHomeScreenState extends State<AdminHomeScreen> {
-  int _selectedIndex = 0;
+  final int _selectedIndex = 0;
 
-  final List<String> _pageTitles = const [
+  static const List<String> _pageTitles = [
     "Tổng quan",
     "Quản lý sản phẩm",
     "Quản lý danh mục sản phẩm",
     "Khác",
   ];
+
+  IconData _getIcon() {
+    switch (_selectedIndex) {
+      case 0:
+        return Icons.dashboard;
+      case 1:
+        return Icons.inventory_2;
+      case 2:
+        return Icons.category;
+      default:
+        return Icons.more_horiz;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -24,7 +37,10 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
       appBar: AppBar(
         title: const Text(
           "Trang quản trị",
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+          ),
         ),
         backgroundColor: Colors.blue,
       ),
@@ -43,13 +59,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Icon(
-                _selectedIndex == 0
-                    ? Icons.dashboard
-                    : _selectedIndex == 1
-                        ? Icons.inventory_2
-                        : _selectedIndex == 2
-                            ? Icons.category
-                            : Icons.more_horiz,
+                _getIcon(),
                 size: 60,
                 color: Colors.blue,
               ),

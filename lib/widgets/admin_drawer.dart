@@ -3,20 +3,12 @@ import '../screens/admin_home_screen.dart';
 import '../screens/admin_products_screen.dart';
 import '../screens/admin_category_screen.dart';
 
-enum AdminMenuItem {
-  dashboard,
-  products,
-  categories,
-  other,
-}
+enum AdminMenuItem { dashboard, products, categories, other }
 
 class AdminDrawer extends StatelessWidget {
   final AdminMenuItem selected;
 
-  const AdminDrawer({
-    super.key,
-    required this.selected,
-  });
+  const AdminDrawer({super.key, required this.selected});
 
   @override
   Widget build(BuildContext context) {
@@ -33,12 +25,12 @@ class AdminDrawer extends StatelessWidget {
                   end: Alignment.bottomRight,
                 ),
               ),
-              child: Align(
+              child: const Align(
                 alignment: Alignment.bottomLeft,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisAlignment: MainAxisAlignment.end,
-                  children: const [
+                  children: [
                     Text(
                       "Admin Panel",
                       style: TextStyle(
@@ -50,15 +42,13 @@ class AdminDrawer extends StatelessWidget {
                     SizedBox(height: 4),
                     Text(
                       "Quản lý Shoe Shop",
-                      style: TextStyle(
-                        color: Colors.white70,
-                        fontSize: 14,
-                      ),
+                      style: TextStyle(color: Colors.white70, fontSize: 14),
                     ),
                   ],
                 ),
               ),
             ),
+
             ListTile(
               leading: const Icon(Icons.dashboard, color: Colors.blue),
               title: const Text("Tổng quan"),
@@ -66,16 +56,16 @@ class AdminDrawer extends StatelessWidget {
               selectedColor: Colors.blue,
               onTap: () {
                 Navigator.pop(context);
+
                 if (selected != AdminMenuItem.dashboard) {
                   Navigator.pushReplacement(
                     context,
-                    MaterialPageRoute(
-                      builder: (_) => const AdminHomeScreen(),
-                    ),
+                    MaterialPageRoute(builder: (_) => const AdminHomeScreen()),
                   );
                 }
               },
             ),
+
             ListTile(
               leading: const Icon(Icons.inventory_2, color: Colors.blue),
               title: const Text("Quản lý sản phẩm"),
@@ -83,6 +73,7 @@ class AdminDrawer extends StatelessWidget {
               selectedColor: Colors.blue,
               onTap: () {
                 Navigator.pop(context);
+
                 if (selected != AdminMenuItem.products) {
                   Navigator.pushReplacement(
                     context,
@@ -93,6 +84,7 @@ class AdminDrawer extends StatelessWidget {
                 }
               },
             ),
+
             ListTile(
               leading: const Icon(Icons.category, color: Colors.blue),
               title: const Text("Quản lý danh mục sản phẩm"),
@@ -100,6 +92,7 @@ class AdminDrawer extends StatelessWidget {
               selectedColor: Colors.blue,
               onTap: () {
                 Navigator.pop(context);
+
                 if (selected != AdminMenuItem.categories) {
                   Navigator.pushReplacement(
                     context,
@@ -110,6 +103,7 @@ class AdminDrawer extends StatelessWidget {
                 }
               },
             ),
+
             ListTile(
               leading: const Icon(Icons.more_horiz, color: Colors.blue),
               title: const Text("Khác"),
@@ -117,11 +111,12 @@ class AdminDrawer extends StatelessWidget {
               selectedColor: Colors.blue,
               onTap: () {
                 Navigator.pop(context);
-                // TODO: điều hướng sang trang khác nếu có
               },
             ),
+
             const Spacer(),
             const Divider(height: 1),
+
             ListTile(
               leading: const Icon(Icons.logout, color: Colors.red),
               title: const Text("Đăng xuất"),
@@ -136,4 +131,3 @@ class AdminDrawer extends StatelessWidget {
     );
   }
 }
-

@@ -40,32 +40,35 @@ class _AdminCategoryScreenState extends State<AdminCategoryScreen> {
       imageQuality: 70,
     );
 
-    if (pickedFile != null) {
-      if (kIsWeb) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("Upload ảnh danh mục tốt nhất trên mobile."),
-          ),
-        );
-        return;
-      }
+    if (pickedFile == null) return;
 
-      setDialogState(() {
-        _selectedImage = File(pickedFile.path);
-      });
+    if (kIsWeb) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Upload ảnh danh mục tốt nhất trên mobile."),
+        ),
+      );
+      return;
     }
+
+    setDialogState(() {
+      _selectedImage = File(pickedFile.path);
+    });
   }
 
   void _showCategoryDialog({CategoryModel? category}) {
     final bool isEditing = category != null;
 
-    _nameController.text = isEditing ? category.name : "";
+    _nameController.text = category?.name ?? "";
     _selectedImage = null;
+    _isSaving = false;
 
     showDialog(
       context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setDialogState) => AlertDialog(
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (dialogContext, setDialogState) => AlertDialog(
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
           ),
@@ -92,7 +95,8 @@ class _AdminCategoryScreenState extends State<AdminCategoryScreen> {
                               fit: BoxFit.cover,
                             ),
                           )
-                        : (isEditing && category.imageUrl.isNotEmpty)
+                        : (isEditing &&
+                                category.imageUrl.isNotEmpty)
                             ? ClipRRect(
                                 borderRadius: BorderRadius.circular(18),
                                 child: Image.network(
@@ -122,7 +126,8 @@ class _AdminCategoryScreenState extends State<AdminCategoryScreen> {
           ),
           actions: [
             TextButton(
-              onPressed: _isSaving ? null : () => Navigator.pop(context),
+              onPressed:
+                  _isSaving ? null : () => Navigator.pop(dialogContext),
               child: const Text("Hủy"),
             ),
             ElevatedButton(
@@ -136,8 +141,7 @@ class _AdminCategoryScreenState extends State<AdminCategoryScreen> {
                       setDialogState(() => _isSaving = true);
 
                       try {
-                        String finalImageUrl =
-                            isEditing ? category!.imageUrl : "";
+                        String finalImageUrl = category?.imageUrl ?? "";
 
                         if (_selectedImage != null && !kIsWeb) {
                           finalImageUrl =
@@ -146,7 +150,7 @@ class _AdminCategoryScreenState extends State<AdminCategoryScreen> {
 
                         if (isEditing) {
                           await _fs.updateCategory(
-                            category!.id,
+                            category.id,
                             name,
                             imageUrl: finalImageUrl,
                           );
@@ -157,8 +161,12 @@ class _AdminCategoryScreenState extends State<AdminCategoryScreen> {
                           );
                         }
 
-                        if (mounted) Navigator.pop(context);
+                        if (!mounted) return;
+
+                        Navigator.pop(context);
                       } catch (e) {
+                        if (!mounted) return;
+
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(content: Text("Lỗi: $e")),
                         );
@@ -186,12 +194,12 @@ class _AdminCategoryScreenState extends State<AdminCategoryScreen> {
   void _confirmDelete(CategoryModel category) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         title: const Text("Xác nhận xóa"),
         content: Text('Bạn có chắc muốn xóa "${category.name}" ?'),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.pop(dialogContext),
             child: const Text("Hủy"),
           ),
           ElevatedButton(
@@ -199,7 +207,9 @@ class _AdminCategoryScreenState extends State<AdminCategoryScreen> {
             onPressed: () async {
               await _fs.deleteCategory(category.id);
 
-              if (mounted) Navigator.pop(context);
+              if (!mounted) return;
+
+              Navigator.pop(context);
             },
             child: const Text("Xóa"),
           ),
@@ -212,12 +222,10 @@ class _AdminCategoryScreenState extends State<AdminCategoryScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       drawer: const AdminDrawer(selected: AdminMenuItem.categories),
-
       appBar: AppBar(
         title: const Text("Quản lý danh mục"),
         centerTitle: true,
       ),
-
       body: Column(
         children: [
           Padding(
@@ -236,7 +244,6 @@ class _AdminCategoryScreenState extends State<AdminCategoryScreen> {
               },
             ),
           ),
-
           Expanded(
             child: StreamBuilder<List<CategoryModel>>(
               stream: _fs.getCategories(),
@@ -244,14 +251,12 @@ class _AdminCategoryScreenState extends State<AdminCategoryScreen> {
                 if (snapshot.connectionState ==
                     ConnectionState.waiting) {
                   return const Center(
-                    child: CircularProgressIndicator(),
-                  );
+                      child: CircularProgressIndicator());
                 }
 
                 if (snapshot.hasError) {
                   return const Center(
-                    child: Text("Lỗi tải danh mục"),
-                  );
+                      child: Text("Lỗi tải danh mục"));
                 }
 
                 List<CategoryModel> categories =
@@ -259,15 +264,15 @@ class _AdminCategoryScreenState extends State<AdminCategoryScreen> {
 
                 if (_searchQuery.isNotEmpty) {
                   categories = categories
-                      .where((c) =>
-                          c.name.toLowerCase().contains(_searchQuery))
+                      .where((c) => c.name
+                          .toLowerCase()
+                          .contains(_searchQuery))
                       .toList();
                 }
 
                 if (categories.isEmpty) {
                   return const Center(
-                    child: Text("Không có danh mục"),
-                  );
+                      child: Text("Không có danh mục"));
                 }
 
                 return ListView.builder(
@@ -284,9 +289,7 @@ class _AdminCategoryScreenState extends State<AdminCategoryScreen> {
                               fit: BoxFit.cover,
                             )
                           : const Icon(Icons.category),
-
                       title: Text(cat.name),
-
                       trailing: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
@@ -310,7 +313,6 @@ class _AdminCategoryScreenState extends State<AdminCategoryScreen> {
           ),
         ],
       ),
-
       floatingActionButton: FloatingActionButton(
         backgroundColor: Colors.black,
         onPressed: () => _showCategoryDialog(),

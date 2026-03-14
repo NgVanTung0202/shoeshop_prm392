@@ -5,9 +5,9 @@ import 'package:firebase_storage/firebase_storage.dart';
 
 import '../models/category_model.dart';
 import '../models/product_model.dart';
+import '../models/review_model.dart'; // Đảm bảo import model này
 
 class FirestoreService {
-
   final FirebaseFirestore _db = FirebaseFirestore.instance;
   final FirebaseStorage _storage = FirebaseStorage.instance;
 
@@ -22,9 +22,7 @@ class FirestoreService {
   }
 
   Future<void> updateUserRole(String uid, String role) async {
-    await _db.collection("users").doc(uid).update({
-      "role": role
-    });
+    await _db.collection("users").doc(uid).update({"role": role});
   }
 
   Future<void> updateProfile({
@@ -32,7 +30,6 @@ class FirestoreService {
     required String name,
     required String phone,
   }) async {
-
     await _db.collection("users").doc(uid).update({
       "name": name,
       "phone": phone,
@@ -42,36 +39,27 @@ class FirestoreService {
   /// ================= CATEGORY =================
 
   Stream<List<CategoryModel>> getCategories() {
-
     return _db.collection("categories").snapshots().map((snapshot) {
-
       return snapshot.docs.map((doc) {
-
         final data = doc.data();
-
         return CategoryModel(
           id: doc.id,
           name: data["name"] ?? "",
           imageUrl: data["imageUrl"] ?? "",
         );
-
       }).toList();
     });
   }
 
-  Future<void> addCategory(String name,{String imageUrl = ""}) async {
-
+  Future<void> addCategory(String name, {String imageUrl = ""}) async {
     await _db.collection("categories").add({
       "name": name,
       "imageUrl": imageUrl,
     });
   }
 
-  Future<void> updateCategory(
-      String id,
-      String name,
+  Future<void> updateCategory(String id, String name,
       {String imageUrl = ""}) async {
-
     await _db.collection("categories").doc(id).update({
       "name": name,
       "imageUrl": imageUrl,
@@ -79,51 +67,36 @@ class FirestoreService {
   }
 
   Future<void> deleteCategory(String id) async {
-
     await _db.collection("categories").doc(id).delete();
   }
 
   /// ================= PRODUCT =================
 
   Stream<List<ProductModel>> getProducts() {
-
     return _db.collection("products").snapshots().map((snapshot) {
-
       return snapshot.docs.map((doc) {
-
         final data = doc.data();
-
         return ProductModel.fromFirestore(
           doc.id,
           data,
         );
-
       }).toList();
     });
   }
 
   Future<void> addProduct(ProductModel product) async {
-
     await _db.collection("products").add(product.toMap());
   }
 
   Future<void> updateProduct(ProductModel product) async {
-
-    await _db.collection("products")
-        .doc(product.id)
-        .update(product.toMap());
+    await _db.collection("products").doc(product.id).update(product.toMap());
   }
 
-  Future<void> deleteProduct(String id,String imageUrl) async {
-
+  Future<void> deleteProduct(String id, String imageUrl) async {
     await _db.collection("products").doc(id).delete();
-
     if (imageUrl.isNotEmpty) {
-
       try {
-        await FirebaseStorage.instance
-            .refFromURL(imageUrl)
-            .delete();
+        await FirebaseStorage.instance.refFromURL(imageUrl).delete();
       } catch (_) {}
     }
   }
@@ -131,15 +104,32 @@ class FirestoreService {
   /// ================= IMAGE UPLOAD =================
 
   Future<String> uploadImage(File file) async {
-
-    final fileName =
-        DateTime.now().millisecondsSinceEpoch.toString();
-
-    final ref =
-        _storage.ref().child("images/$fileName.jpg");
-
+    final fileName = DateTime.now().millisecondsSinceEpoch.toString();
+    final ref = _storage.ref().child("images/$fileName.jpg");
     await ref.putFile(file);
-
     return await ref.getDownloadURL();
+  }
+
+  /// ================= REVIEWS =================
+
+  // Thêm review mới vào Sub-collection của Product
+  Future<void> addReview(ReviewModel review) async {
+    await _db
+        .collection('products')
+        .doc(review.productId)
+        .collection('reviews')
+        .add(review.toMap());
+  }
+
+  // Lấy danh sách review của một sản phẩm cụ thể (Stream)
+  Stream<List<ReviewModel>> getProductReviews(String productId) {
+    return _db
+        .collection('products')
+        .doc(productId)
+        .collection('reviews')
+        .snapshots()
+        .map((snapshot) => snapshot.docs
+            .map((doc) => ReviewModel.fromMap(doc.id, doc.data()))
+            .toList());
   }
 }

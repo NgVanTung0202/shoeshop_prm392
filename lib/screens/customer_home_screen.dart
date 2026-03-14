@@ -379,7 +379,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
 
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.2),
             blurRadius: 15,
           ),
         ],
@@ -397,7 +397,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
               margin: const EdgeInsets.all(8),
 
               decoration: BoxDecoration(
-                color: Colors.blue.shade50.withOpacity(0.5),
+                color: Colors.blue.withValues(alpha: 0.2),
                 borderRadius: BorderRadius.circular(15),
               ),
 
