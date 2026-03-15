@@ -1,4 +1,5 @@
-update-code
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 class ReviewModel {
   final String id;
   final String productId;
@@ -8,73 +9,43 @@ class ReviewModel {
   final double rating;
   final DateTime createdAt;
 
-import 'package:cloud_firestore/cloud_firestore.dart';
-
-class ReviewModel {
-  String id;
-  String productId;
-  String userId;
-  String userName;
-  double rating;
-  String comment;
-  DateTime createdAt;
-main
-
   ReviewModel({
     required this.id,
     required this.productId,
     required this.userId,
     required this.userName,
-update-code
     required this.comment,
     required this.rating,
-
-    required this.rating,
-    required this.comment,
-main
     required this.createdAt,
   });
 
+  // Chuyển object thành Map để lưu lên Firestore
   Map<String, dynamic> toMap() {
     return {
       'productId': productId,
       'userId': userId,
       'userName': userName,
-update-code
       'comment': comment,
       'rating': rating,
-      'createdAt': createdAt.toIso8601String(),
-    };
-  }
-
-  factory ReviewModel.fromMap(String id, Map<String, dynamic> data) {
-    
-      'rating': rating,
-      'comment': comment,
       'createdAt': Timestamp.fromDate(createdAt),
     };
   }
 
+  // Factory method để tạo object từ dữ liệu Firestore
   factory ReviewModel.fromFirestore(String id, Map<String, dynamic> data) {
-main
     return ReviewModel(
       id: id,
       productId: data['productId'] ?? '',
       userId: data['userId'] ?? '',
-update-code
-      userName: data['userName'] ?? '',
-      comment: data['comment'] ?? '',
-      rating: (data['rating'] ?? 0).toDouble(),
-      createdAt: DateTime.parse(data['createdAt']),
-    );
-  }
-}
-
       userName: data['userName'] ?? 'Customer',
-      rating: (data['rating'] ?? 0).toDouble(),
       comment: data['comment'] ?? '',
-      createdAt: (data['createdAt'] as Timestamp).toDate(),
+      rating: (data['rating'] ?? 0).toDouble(),
+      createdAt: data['createdAt'] != null
+          ? (data['createdAt'] as Timestamp).toDate()
+          : DateTime.now(),
     );
   }
+
+  factory ReviewModel.fromMap(String id, Map<String, dynamic> data) =>
+      ReviewModel.fromFirestore(id, data);
 }
- main

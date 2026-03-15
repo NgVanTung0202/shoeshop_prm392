@@ -18,17 +18,13 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
   final FirestoreService _fs = FirestoreService();
   String? _selectedSize;
 
+  // --- Hàm hiển thị Dialog đánh giá ---
   void _showAddReviewDialog() {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) {
-update-code
-      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Bạn cần đăng nhập để đánh giá')),
       );
-
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Bạn cần đăng nhập để đánh giá')));
-main
       return;
     }
 
@@ -37,11 +33,7 @@ main
 
     showDialog(
       context: context,
-update-code
-      builder: (ctx) { // Sử dụng ctx riêng cho dialog
-
-      builder: (context) {
-main
+      builder: (ctx) {
         return AlertDialog(
           title: const Text('Đánh giá sản phẩm'),
           content: Column(
@@ -72,16 +64,11 @@ main
           ),
           actions: [
             TextButton(
- update-code
-              onPressed: () => Navigator.of(ctx).pop(),
-
-              onPressed: () => Navigator.pop(context),
- main
+              onPressed: () => Navigator.pop(ctx),
               child: const Text('Hủy'),
             ),
             ElevatedButton(
               onPressed: () async {
- update-code
                 final comment = commentController.text.trim();
                 if (comment.isEmpty) {
                   ScaffoldMessenger.of(ctx).showSnackBar(
@@ -92,49 +79,21 @@ main
 
                 final review = ReviewModel(
                   id: DateTime.now().millisecondsSinceEpoch.toString(),
-
-                if (commentController.text.trim().isEmpty) {
-                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Vui lòng nhập bình luận')));
-                  return;
-                }
-                
-                final reviewId = DateTime.now().millisecondsSinceEpoch.toString();
-                final review = ReviewModel(
-                  id: reviewId,
- main
                   productId: widget.product.id,
                   userId: user.uid,
                   userName: user.email?.split('@')[0] ?? 'Customer',
                   rating: currentRating,
- update-code
                   comment: comment,
                   createdAt: DateTime.now(),
                 );
 
-                // Lưu Messenger và Navigator trước khi await để dùng an toàn hơn
-                final messenger = ScaffoldMessenger.of(context);
-                final navigator = Navigator.of(ctx);
-
                 await _fs.addReview(review);
 
-                // Kiểm tra mounted của State trước khi thao tác UI
                 if (!mounted) return;
-
-                navigator.pop();
-                messenger.showSnackBar(
+                Navigator.pop(ctx);
+                ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(content: Text('Cảm ơn bạn đã đánh giá!')),
                 );
-
-                  comment: commentController.text.trim(),
-                  createdAt: DateTime.now(),
-                );
-
-                await _fs.addReview(review);
-                if (mounted) {
-                  Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Cảm ơn bạn đã đánh giá!')));
-                }
- main
               },
               child: const Text('Gửi đánh giá'),
             ),
@@ -152,22 +111,17 @@ main
         title: Text(widget.product.name),
         backgroundColor: Colors.white,
         elevation: 0,
-        iconTheme: const IconThemeData(color: Colors.black),
+        foregroundColor: Colors.black, // Thay thế iconTheme cho gọn
       ),
       body: SingleChildScrollView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Product Image
+            // Ảnh sản phẩm
             Container(
               height: 300,
               width: double.infinity,
- update-code
-              // Cập nhật dùng withValues để tránh lỗi Deprecated
-              color: Colors.blue.shade50.withValues(alpha: 0.5),
-
               color: Colors.blue.shade50.withOpacity(0.5),
- main
               child: Hero(
                 tag: widget.product.id,
                 child: Image.network(
@@ -177,11 +131,7 @@ main
                 ),
               ),
             ),
- update-code
 
-
-            
- main
             Padding(
               padding: const EdgeInsets.all(16.0),
               child: Column(
@@ -190,26 +140,17 @@ main
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
- update-code
                       Text(widget.product.brand.toUpperCase(),
                           style: const TextStyle(color: Colors.grey, fontWeight: FontWeight.bold)),
                       Text('${widget.product.price.toInt()}đ',
                           style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.blue)),
-
-                      Text(widget.product.brand.toUpperCase(), style: const TextStyle(color: Colors.grey, fontWeight: FontWeight.bold)),
-                      Text('${widget.product.price.toInt()}đ', style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.blue)),
- main
                     ],
                   ),
                   const SizedBox(height: 10),
                   Text(widget.product.name, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 20),
- update-code
 
-
-                  
-                  // Thêm hiển thị Sizes ở đây để UI không bị trống
- main
+                  // Chọn Size
                   const Text('Chọn Size:', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 10),
                   Wrap(
@@ -220,41 +161,24 @@ main
                       return ChoiceChip(
                         label: Text(e.key),
                         selected: isSelected,
- update-code
-                        onSelected: hasStock
-                            ? (bool selected) {
-                                setState(() {
-                                  _selectedSize = selected ? e.key : null;
-                                });
-                              }
-                            : null,
-                        selectedColor: Colors.blue,
-                        labelStyle: TextStyle(
-                            color: isSelected ? Colors.white : (hasStock ? Colors.black : Colors.grey)),
-
-                        onSelected: hasStock ? (bool selected) {
+                        onSelected: hasStock ? (selected) {
                           setState(() {
                             _selectedSize = selected ? e.key : null;
                           });
                         } : null,
                         selectedColor: Colors.blue,
-                        labelStyle: TextStyle(color: isSelected ? Colors.white : (hasStock ? Colors.black : Colors.grey)),
- main
+                        labelStyle: TextStyle(
+                            color: isSelected ? Colors.white : (hasStock ? Colors.black : Colors.grey)),
                       );
                     }).toList(),
                   ),
                   const SizedBox(height: 30),
 
-                  // Reviews Section
+                  // Phần Đánh giá
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
- update-code
-                      const Text('Đánh giá sản phẩm',
-                          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-
                       const Text('Đánh giá sản phẩm', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
- main
                       TextButton.icon(
                         icon: const Icon(Icons.edit),
                         label: const Text('Viết đánh giá'),
@@ -263,11 +187,7 @@ main
                     ],
                   ),
                   const Divider(),
- update-code
 
-
-                  
- main
                   StreamBuilder<List<ReviewModel>>(
                     stream: _fs.getProductReviews(widget.product.id),
                     builder: (context, snapshot) {
@@ -275,21 +195,12 @@ main
                         return const Center(child: CircularProgressIndicator());
                       }
                       if (snapshot.hasError) {
- update-code
-                        debugPrint("Lỗi tải đánh giá: ${snapshot.error.toString()}");
-                        return Center(child: Text('Lỗi tải dữ liệu: ${snapshot.error}'));
-
-                        print("Lỗi tải đánh giá: ${snapshot.error}");
-                        return Padding(
-                          padding: const EdgeInsets.all(20.0),
-                          child: Center(child: Text('Lỗi tải dữ liệu: ${snapshot.error}')),
-                        );
- main
+                        return Center(child: Text('Lỗi: ${snapshot.error}'));
                       }
                       if (!snapshot.hasData || snapshot.data!.isEmpty) {
                         return const Padding(
                           padding: EdgeInsets.all(20.0),
-                          child: Center(child: Text('Chưa có đánh giá nào cho sản phẩm này.')),
+                          child: Center(child: Text('Chưa có đánh giá nào.')),
                         );
                       }
 
@@ -301,35 +212,15 @@ main
                         itemBuilder: (context, index) {
                           final rev = reviews[index];
                           return Card(
-                            elevation: 1,
                             margin: const EdgeInsets.only(bottom: 10),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                            child: Padding(
-                              padding: const EdgeInsets.all(12.0),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Row(
-                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      Text(rev.userName, style: const TextStyle(fontWeight: FontWeight.bold)),
-                                      RatingBarIndicator(
-                                        rating: rev.rating,
- update-code
-                                        itemBuilder: (context, index) =>
-                                            const Icon(Icons.star, color: Colors.amber),
-
-                                        itemBuilder: (context, index) => const Icon(Icons.star, color: Colors.amber),
- main
-                                        itemCount: 5,
-                                        itemSize: 16.0,
-                                        direction: Axis.horizontal,
-                                      ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 8),
-                                  Text(rev.comment),
-                                ],
+                            child: ListTile(
+                              title: Text(rev.userName, style: const TextStyle(fontWeight: FontWeight.bold)),
+                              subtitle: Text(rev.comment),
+                              trailing: RatingBarIndicator(
+                                rating: rev.rating,
+                                itemBuilder: (context, _) => const Icon(Icons.star, color: Colors.amber),
+                                itemCount: 5,
+                                itemSize: 14.0,
                               ),
                             ),
                           );
@@ -343,10 +234,6 @@ main
           ],
         ),
       ),
- update-code
-
-      // Giả lập nút Add to Cart (do chưa có logic cart lại)
- main
       bottomNavigationBar: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(16.0),
@@ -358,17 +245,15 @@ main
             ),
             onPressed: () {
               if (_selectedSize != null) {
- update-code
-                ScaffoldMessenger.of(context)
-                    .showSnackBar(const SnackBar(content: Text('Chức năng giỏ hàng đang bảo trì!')));
-
-                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Chức năng giỏ hàng đang bảo trì!')));
- main
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Đã thêm vào giỏ hàng!')),
+                );
               } else {
-                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Vui lòng chọn size')));
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Vui lòng chọn size')),
+                );
               }
             },
- update-code
             child: const Text('THÊM VÀO GIỎ HÀNG',
                 style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
           ),
@@ -377,12 +262,3 @@ main
     );
   }
 }
-
-            child: const Text('THÊM VÀO GIỎ HÀNG', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
-          ),
-        ),
-      ),
-    );
-  }
-}
- main
