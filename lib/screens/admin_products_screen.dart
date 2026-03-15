@@ -19,15 +19,13 @@ class AdminProductsScreen extends StatefulWidget {
 
 class _AdminProductsScreenState extends State<AdminProductsScreen> {
   final FirestoreService _fs = FirestoreService();
-
   File? _selectedImage;
-
   final TextEditingController _searchController = TextEditingController();
 
-  final String _searchQuery = '';
+  String _searchQuery = ''; // Đổi thành biến thường để cập nhật được
   String? _filterCategoryId;
 
-  final List<String> shoeSizes = ['36','37','38','39','40','41','42','43','44'];
+  final List<String> shoeSizes = ['36', '37', '38', '39', '40', '41', '42', '43', '44'];
 
   @override
   void dispose() {
@@ -35,9 +33,9 @@ class _AdminProductsScreenState extends State<AdminProductsScreen> {
     super.dispose();
   }
 
+  // --- Hàm chọn ảnh ---
   Future<void> _pickImage(StateSetter setDialogState) async {
     final picker = ImagePicker();
-
     final pickedFile = await picker.pickImage(
       source: ImageSource.gallery,
       imageQuality: 70,
@@ -47,11 +45,8 @@ class _AdminProductsScreenState extends State<AdminProductsScreen> {
 
     if (kIsWeb) {
       if (!mounted) return;
-
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Upload ảnh tốt nhất trên mobile/emulator"),
-        ),
+        const SnackBar(content: Text("Upload ảnh tốt nhất trên mobile/emulator")),
       );
       return;
     }
@@ -60,6 +55,7 @@ class _AdminProductsScreenState extends State<AdminProductsScreen> {
       _selectedImage = File(pickedFile.path);
     });
   }
+
 
   void _confirmDelete(ProductModel product) {
     showDialog(
@@ -73,51 +69,34 @@ class _AdminProductsScreenState extends State<AdminProductsScreen> {
             child: const Text("Hủy"),
           ),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
-            ),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
             onPressed: () async {
-              await _fs.deleteProduct(
-                product.id,
-                product.imageUrl,
-              );
-
+              await _fs.deleteProduct(product.id, product.imageUrl);
               if (!mounted) return;
-              Navigator.pop(context);
+              Navigator.pop(dialogContext);
             },
-            child: const Text("Xóa"),
+            child: const Text("Xóa", style: TextStyle(color: Colors.white)),
           ),
         ],
       ),
     );
   }
 
+  // --- Form Thêm/Sửa sản phẩm ---
   void _showProductForm({ProductModel? product}) {
     final bool isEditing = product != null;
-
-    String? dialogCategoryId =
-        isEditing ? product.categoryId : null;
-
+    String? dialogCategoryId = isEditing ? product.categoryId : null;
     bool isSaving = false;
 
-    final nameController =
-        TextEditingController(text: isEditing ? product.name : '');
-
-    final brandController =
-        TextEditingController(text: isEditing ? product.brand : '');
-
-    final priceController =
-        TextEditingController(text: isEditing ? product.price.toString() : '');
-
-    final descController =
-        TextEditingController(text: isEditing ? product.description : '');
+    final nameController = TextEditingController(text: isEditing ? product.name : '');
+    final brandController = TextEditingController(text: isEditing ? product.brand : '');
+    final priceController = TextEditingController(text: isEditing ? product.price.toString() : '');
+    final descController = TextEditingController(text: isEditing ? product.description : '');
 
     final Map<String, TextEditingController> sizeControllers = {
       for (var size in shoeSizes)
         size: TextEditingController(
-          text: isEditing
-              ? (product.sizesStock[size] ?? 0).toString()
-              : '0',
+          text: isEditing ? (product.sizesStock[size] ?? 0).toString() : '0',
         )
     };
 
@@ -125,11 +104,9 @@ class _AdminProductsScreenState extends State<AdminProductsScreen> {
 
     showDialog(
       context: context,
-      builder: (dialogContext) => StatefulBuilder(
-        builder: (dialogContext, setDialogState) => AlertDialog(
-          title: Text(
-            isEditing ? "Cập nhật sản phẩm" : "Thêm giày mới",
-          ),
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: Text(isEditing ? "Cập nhật sản phẩm" : "Thêm giày mới"),
           content: SizedBox(
             width: double.maxFinite,
             child: SingleChildScrollView(
@@ -144,186 +121,83 @@ class _AdminProductsScreenState extends State<AdminProductsScreen> {
                         color: const Color(0xFFF0F1F5),
                         borderRadius: BorderRadius.circular(10),
                       ),
-                      child: (!kIsWeb && _selectedImage != null)
+                      child: (_selectedImage != null)
                           ? Image.file(_selectedImage!, fit: BoxFit.cover)
                           : (isEditing && product.imageUrl.isNotEmpty)
-                              ? Image.network(product.imageUrl)
-                              : const Center(
-                                  child: Icon(
-                                    Icons.add_a_photo_outlined,
-                                    size: 40,
-                                  ),
-                                ),
+                          ? Image.network(product.imageUrl, fit: BoxFit.cover)
+                          : const Center(child: Icon(Icons.add_a_photo_outlined, size: 40)),
                     ),
                   ),
-
                   const SizedBox(height: 15),
-
                   StreamBuilder<List<CategoryModel>>(
                     stream: _fs.getCategories(),
                     builder: (context, snapshot) {
-                      if (!snapshot.hasData) {
-                        return const LinearProgressIndicator();
-                      }
-
-                      return 
-                      DropdownButtonFormField(
-                        initialValue: dialogCategoryId,
+                      if (!snapshot.hasData) return const LinearProgressIndicator();
+                      return DropdownButtonFormField<String>(
+                        value: dialogCategoryId,
                         hint: const Text("Chọn danh mục"),
-                        items: snapshot.data!
-                            .map((cat) => DropdownMenuItem(
-                                  value: cat.id,
-                                  child: Text(cat.name),
-                                ))
-                            .toList(),
-                        onChanged: (val) {
-                          setDialogState(() {
-                            dialogCategoryId = val;
-                          });
-                        },
+                        items: snapshot.data!.map((cat) => DropdownMenuItem(
+                          value: cat.id,
+                          child: Text(cat.name),
+                        )).toList(),
+                        onChanged: (val) => setDialogState(() => dialogCategoryId = val),
                       );
                     },
                   ),
-
-                  TextField(
-                    controller: nameController,
-                    decoration: const InputDecoration(labelText: "Tên giày"),
-                  ),
-
-                  TextField(
-                    controller: brandController,
-                    decoration: const InputDecoration(labelText: "Brand"),
-                  ),
-
-                  TextField(
-                    controller: priceController,
-                    decoration: const InputDecoration(labelText: "Giá"),
-                    keyboardType: TextInputType.number,
-                  ),
-
-                  TextField(
-                    controller: descController,
-                    decoration: const InputDecoration(labelText: "Mô tả"),
-                  ),
-
+                  TextField(controller: nameController, decoration: const InputDecoration(labelText: "Tên giày")),
+                  TextField(controller: brandController, decoration: const InputDecoration(labelText: "Brand")),
+                  TextField(controller: priceController, decoration: const InputDecoration(labelText: "Giá"), keyboardType: TextInputType.number),
+                  TextField(controller: descController, decoration: const InputDecoration(labelText: "Mô tả")),
                   const SizedBox(height: 20),
-
-                  const Align(
-                    alignment: Alignment.centerLeft,
-                    child: Text(
-                      "Kho hàng theo Size",
-                      style: TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                  ),
-
+                  const Align(alignment: Alignment.centerLeft, child: Text("Kho hàng theo Size", style: TextStyle(fontWeight: FontWeight.bold))),
                   const SizedBox(height: 10),
-
                   Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: shoeSizes.map((size) {
-                      return SizedBox(
-                        width: 70,
-                        child: TextField(
-                          controller: sizeControllers[size],
-                          keyboardType: TextInputType.number,
-                          decoration: InputDecoration(
-                            labelText: "S-$size",
-                            border: const OutlineInputBorder(),
-                          ),
-                        ),
-                      );
-                    }).toList(),
+                    spacing: 8, runSpacing: 8,
+                    children: shoeSizes.map((size) => SizedBox(
+                      width: 70,
+                      child: TextField(
+                        controller: sizeControllers[size],
+                        keyboardType: TextInputType.number,
+                        decoration: InputDecoration(labelText: "S-$size", border: const OutlineInputBorder()),
+                      ),
+                    )).toList(),
                   ),
                 ],
               ),
             ),
           ),
-
           actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext),
-              child: const Text("Hủy"),
-            ),
-
+            TextButton(onPressed: () => Navigator.pop(context), child: const Text("Hủy")),
             ElevatedButton(
-              onPressed: isSaving
-                  ? null
-                  : () async {
-                      if (dialogCategoryId == null ||
-                          nameController.text.trim().isEmpty ||
-                          brandController.text.trim().isEmpty) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text("Điền đủ thông tin"),
-                          ),
-                        );
-                        return;
-                      }
+              onPressed: isSaving ? null : () async {
+                if (dialogCategoryId == null || nameController.text.isEmpty) return;
+                setDialogState(() => isSaving = true);
+                try {
+                  String finalImageUrl = isEditing ? product.imageUrl : '';
+                  if (_selectedImage != null) finalImageUrl = await _fs.uploadImage(_selectedImage!);
 
-                      setDialogState(() {
-                        isSaving = true;
-                      });
+                  Map<String, int> inventory = {for (var s in shoeSizes) s: int.tryParse(sizeControllers[s]!.text) ?? 0};
 
-                      try {
-                        String finalImageUrl =
-                            isEditing ? product.imageUrl : '';
+                  final p = ProductModel(
+                    id: isEditing ? product.id : '',
+                    name: nameController.text,
+                    brand: brandController.text,
+                    price: double.tryParse(priceController.text) ?? 0,
+                    categoryId: dialogCategoryId!,
+                    imageUrl: finalImageUrl,
+                    description: descController.text,
+                    sizesStock: inventory,
+                  );
 
-                        if (!kIsWeb && _selectedImage != null) {
-                          finalImageUrl =
-                              await _fs.uploadImage(_selectedImage!);
-                        }
-
-                        Map<String, int> inventory = {
-                          for (var s in shoeSizes)
-                            s: int.tryParse(
-                                    sizeControllers[s]!.text) ??
-                                0
-                        };
-
-                        final p = ProductModel(
-                          id: isEditing ? product.id : '',
-                          name: nameController.text,
-                          brand: brandController.text,
-                          price:
-                              double.tryParse(priceController.text) ?? 0,
-                          categoryId: dialogCategoryId!,
-                          imageUrl: finalImageUrl,
-                          description: descController.text,
-                          sizesStock: inventory,
-                        );
-
-                        if (isEditing) {
-                          await _fs.updateProduct(p);
-                        } else {
-                          await _fs.addProduct(p);
-                        }
-
-                        if (!mounted) return;
-                        Navigator.pop(context);
-
-                      } catch (e) {
-
-                        if (!mounted) return;
-
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text("Lỗi: $e")),
-                        );
-
-                      } finally {
-
-                        setDialogState(() {
-                          isSaving = false;
-                        });
-                      }
-                    },
-              child: isSaving
-                  ? const SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(),
-                    )
-                  : const Text("Lưu"),
+                  isEditing ? await _fs.updateProduct(p) : await _fs.addProduct(p);
+                  if (mounted) Navigator.pop(context);
+                } catch (e) {
+                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Lỗi: $e")));
+                } finally {
+                  setDialogState(() => isSaving = false);
+                }
+              },
+              child: isSaving ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)) : const Text("Lưu"),
             ),
           ],
         ),
@@ -333,141 +207,68 @@ class _AdminProductsScreenState extends State<AdminProductsScreen> {
 
   @override
   Widget build(BuildContext context) {
-
     return Scaffold(
-
       appBar: AppBar(
-        title: const Text("Kho Sản Phẩm"),
-        centerTitle: true,
-update-code
-
-        title: const Text(
-          "Kho Sản Phẩm",
-          style: TextStyle(
-            fontWeight: FontWeight.w600,
-          ),
-        ),
+        title: const Text("Kho Sản Phẩm", style: TextStyle(fontWeight: FontWeight.w600)),
         actions: [
           IconButton(
             icon: const Icon(Icons.data_object),
-            tooltip: 'Tạo Data Mẫu (Đơn hàng)',
             onPressed: () async {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Đang tạo dữ liệu mẫu...')),
-              );
-              await DbSeeder.seedAll();
-              if (context.mounted) {
+              // Sửa DbSeeder thành DBSeeder (viết hoa chữ B)
+              await DBSeeder.seedAll();
+              if (mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Tạo dữ liệu xong! Bạn có thể xem biểu đồ.')),
+                    const SnackBar(content: Text('Đã tạo data mẫu!'))
                 );
               }
             },
           ),
           IconButton(
             icon: const Icon(Icons.bar_chart),
-            tooltip: 'Thống Kê',
-            onPressed: () {
-              Navigator.push(
+            onPressed: () => Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => AdminDashboardScreen()),
-              );
-            },
+                MaterialPageRoute(
+                  // Xóa chữ const ở đây
+                    builder: (context) => AdminDashboardScreen()
+                )
+            ),
           ),
         ],
-main
       ),
-
-      drawer: const AdminDrawer(
-        selected: AdminMenuItem.products,
-      ),
-
+      drawer: const AdminDrawer(selected: AdminMenuItem.products),
       floatingActionButton: FloatingActionButton(
         onPressed: () => _showProductForm(),
         child: const Icon(Icons.add),
       ),
-
       body: StreamBuilder<List<ProductModel>>(
-
         stream: _fs.getProducts(),
-
         builder: (context, snapshot) {
-
-          if (snapshot.connectionState ==
-              ConnectionState.waiting) {
-            return const Center(
-              child: CircularProgressIndicator(),
-            );
-          }
-
-          if (snapshot.hasError) {
-            return const Center(
-              child: Text("Lỗi tải dữ liệu"),
-            );
-          }
+          if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator());
+          if (snapshot.hasError) return const Center(child: Text("Lỗi tải dữ liệu"));
 
           List<ProductModel> products = snapshot.data ?? [];
-
+          // Logic tìm kiếm & lọc (nếu có)
           if (_searchQuery.isNotEmpty) {
-
-            products = products.where((p) {
-
-              final name = p.name.toLowerCase();
-              final brand = p.brand.toLowerCase();
-
-              return name.contains(_searchQuery) ||
-                  brand.contains(_searchQuery);
-
-            }).toList();
-          }
-
-          if (_filterCategoryId != null) {
-
-            products = products
-                .where((p) => p.categoryId == _filterCategoryId)
-                .toList();
+            products = products.where((p) => p.name.toLowerCase().contains(_searchQuery.toLowerCase())).toList();
           }
 
           return ListView.builder(
-
             itemCount: products.length,
-
             itemBuilder: (context, index) {
-
               final p = products[index];
-
               return ListTile(
-
-                leading: Image.network(
-                  p.imageUrl,
-                  width: 60,
-                  height: 60,
-                  fit: BoxFit.cover,
+                leading: ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: Image.network(p.imageUrl, width: 50, height: 50, fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) => const Icon(Icons.image_not_supported)),
                 ),
-
                 title: Text(p.name),
-
-                subtitle: Text(
-                  "${p.brand} • ${p.price.toInt()}đ",
-                ),
-
+                subtitle: Text("${p.brand} • ${p.price.toInt()}đ"),
                 trailing: Row(
                   mainAxisSize: MainAxisSize.min,
-
                   children: [
-
-                    IconButton(
-                      icon: const Icon(Icons.edit),
-                      onPressed: () =>
-                          _showProductForm(product: p),
-                    ),
-
-                    IconButton(
-                      icon: const Icon(
-                        Icons.delete,
-                        color: Colors.red,
-                      ),
-                      onPressed: () => _confirmDelete(p),
-                    ),
+                    IconButton(icon: const Icon(Icons.edit), onPressed: () => _showProductForm(product: p)),
+                    IconButton(icon: const Icon(Icons.delete, color: Colors.red), onPressed: () => _confirmDelete(p)),
                   ],
                 ),
               );
