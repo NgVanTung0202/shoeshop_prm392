@@ -3,9 +3,13 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../models/product_model.dart';
 import '../models/category_model.dart';
 import '../services/firestore_service.dart';
+update-code
 import '../services/auth_service.dart';
 import 'profile_screen.dart';
 import 'change_password_screen.dart';
+
+import 'product_detail_screen.dart';
+main
 
 class CustomerHomeScreen extends StatefulWidget {
   const CustomerHomeScreen({super.key});
@@ -371,6 +375,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
   }
 
   Widget _buildProductCard(ProductModel p) {
+update-code
 
     return Container(
       decoration: BoxDecoration(
@@ -452,9 +457,52 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
                   ],
                 ),
               ],
+
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(context, MaterialPageRoute(builder: (ctx) => ProductDetailScreen(product: p)));
+      },
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 15)],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: Container(
+                width: double.infinity,
+                margin: const EdgeInsets.all(8),
+                decoration: BoxDecoration(color: Colors.blue.shade50.withOpacity(0.5), borderRadius: BorderRadius.circular(15)),
+                child: Center(
+                  child: Hero(
+                    tag: p.id,
+                    child: Image.network(p.imageUrl, fit: BoxFit.contain, errorBuilder: (_, __, ___) => const Icon(Icons.image_not_supported)),
+                  ),
+                ),
+              ),
             ),
-          ),
-        ],
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(p.name, style: const TextStyle(fontWeight: FontWeight.bold), maxLines: 1),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text("${p.price.toInt()}đ", style: const TextStyle(color: Colors.blue, fontWeight: FontWeight.bold)),
+                      const Icon(Icons.add_box, color: Colors.blue, size: 28),
+                    ],
+                  ),
+                ],
+              ),
+main
+            ),
+          ],
+        ),
       ),
     );
   }
