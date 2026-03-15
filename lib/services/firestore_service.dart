@@ -1,86 +1,141 @@
 import 'dart:io';
-import 'package:flutter/foundation.dart';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
-import '../models/product_model.dart';
+
 import '../models/category_model.dart';
+ update-code
+import '../models/product_model.dart';
+import '../models/review_model.dart'; // Đảm bảo import model này
+
 import '../models/review_model.dart';
 import '../models/order_model.dart';
+ main
 
 class FirestoreService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
   final FirebaseStorage _storage = FirebaseStorage.instance;
 
-  // --- HÀM XỬ LÝ ẢNH (Dùng cho UC16) ---
+  /// ================= USERS =================
 
-  /// Upload ảnh lên Storage và trả về URL để lưu vào Firestore
-  Future<String> uploadImage(File imageFile) async {
-    try {
-      if (kIsWeb) {
-        throw UnsupportedError(
-            'uploadImage với File không hỗ trợ trên Web. Vui lòng dùng mobile/emulator.');
-      }
-      // Tạo tên file duy nhất bằng timestamp
-      String fileName = DateTime.now().millisecondsSinceEpoch.toString();
-      Reference ref = _storage.ref().child('products').child('$fileName.jpg');
-
-      // Upload file
-      UploadTask uploadTask = ref.putFile(imageFile);
-      TaskSnapshot snapshot = await uploadTask;
-
-      // Lấy URL tải về
-      return await snapshot.ref.getDownloadURL();
-    } catch (e) {
-      print("Lỗi upload ảnh: $e");
-      return "";
-    }
+  Stream<QuerySnapshot> getUsers() {
+    return _db.collection("users").snapshots();
   }
 
-  /// Xóa ảnh trên Storage khi xóa sản phẩm (để tiết kiệm tài nguyên)
-  Future<void> deleteImage(String imageUrl) async {
-    try {
-      if (imageUrl.isNotEmpty && imageUrl.contains('firebase')) {
-        await _storage.refFromURL(imageUrl).delete();
-      }
-    } catch (e) {
-      print("Lỗi xóa ảnh: $e");
-    }
+  Future<void> deleteUser(String uid) async {
+    await _db.collection("users").doc(uid).delete();
   }
 
-  // --- QUẢN LÝ CATEGORY (UC17) ---
+  Future<void> updateUserRole(String uid, String role) async {
+    await _db.collection("users").doc(uid).update({"role": role});
+  }
+
+  Future<void> updateProfile({
+    required String uid,
+    required String name,
+    required String phone,
+  }) async {
+    await _db.collection("users").doc(uid).update({
+      "name": name,
+      "phone": phone,
+    });
+  }
+
+  /// ================= CATEGORY =================
+
   Stream<List<CategoryModel>> getCategories() {
-    return _db.collection('categories').snapshots().map((snap) =>
-        snap.docs.map((doc) => CategoryModel.fromDoc(doc.id, doc.data())).toList());
+    return _db.collection("categories").snapshots().map((snapshot) {
+      return snapshot.docs.map((doc) {
+        final data = doc.data();
+        return CategoryModel(
+          id: doc.id,
+          name: data["name"] ?? "",
+          imageUrl: data["imageUrl"] ?? "",
+        );
+      }).toList();
+    });
   }
 
-  Future<void> addCategory(String name, {String imageUrl = ''}) =>
-      _db.collection('categories').add({'name': name, 'imageUrl': imageUrl});
-
-  Future<void> updateCategory(String id, String name, {String? imageUrl}) {
-    final data = <String, dynamic>{'name': name};
-    if (imageUrl != null) data['imageUrl'] = imageUrl;
-    return _db.collection('categories').doc(id).update(data);
+  Future<void> addCategory(String name, {String imageUrl = ""}) async {
+    await _db.collection("categories").add({
+      "name": name,
+      "imageUrl": imageUrl,
+    });
   }
 
-  Future<void> deleteCategory(String id) => _db.collection('categories').doc(id).delete();
+  Future<void> updateCategory(String id, String name,
+      {String imageUrl = ""}) async {
+    await _db.collection("categories").doc(id).update({
+      "name": name,
+      "imageUrl": imageUrl,
+    });
+  }
 
-  // --- QUẢN LÝ PRODUCT (UC15 & UC16) ---
+  Future<void> deleteCategory(String id) async {
+    await _db.collection("categories").doc(id).delete();
+  }
+
+  /// ================= PRODUCT =================
+
   Stream<List<ProductModel>> getProducts() {
-    return _db.collection('products').snapshots().map((snap) =>
-        snap.docs.map((doc) => ProductModel.fromFirestore(doc.id, doc.data())).toList());
+    return _db.collection("products").snapshots().map((snapshot) {
+      return snapshot.docs.map((doc) {
+        final data = doc.data();
+        return ProductModel.fromFirestore(
+          doc.id,
+          data,
+        );
+      }).toList();
+    });
   }
 
-  // Thêm sản phẩm mới (Dữ liệu p.sizesStock đã được xử lý từ UI)
-  Future<void> addProduct(ProductModel p) => _db.collection('products').add(p.toMap());
+  Future<void> addProduct(ProductModel product) async {
+    await _db.collection("products").add(product.toMap());
+  }
 
-  // Cập nhật sản phẩm
-  Future<void> updateProduct(ProductModel p) =>
-      _db.collection('products').doc(p.id).update(p.toMap());
+  Future<void> updateProduct(ProductModel product) async {
+    await _db.collection("products").doc(product.id).update(product.toMap());
+  }
 
-  // Xóa sản phẩm và xóa luôn ảnh trên Storage
-  Future<void> deleteProduct(String id, String? imageUrl) async {
-    if (imageUrl != null) await deleteImage(imageUrl);
-    return _db.collection('products').doc(id).delete();
+  Future<void> deleteProduct(String id, String imageUrl) async {
+    await _db.collection("products").doc(id).delete();
+    if (imageUrl.isNotEmpty) {
+      try {
+        await FirebaseStorage.instance.refFromURL(imageUrl).delete();
+      } catch (_) {}
+    }
+  }
+
+  /// ================= IMAGE UPLOAD =================
+
+  Future<String> uploadImage(File file) async {
+    final fileName = DateTime.now().millisecondsSinceEpoch.toString();
+    final ref = _storage.ref().child("images/$fileName.jpg");
+    await ref.putFile(file);
+    return await ref.getDownloadURL();
+  }
+
+  /// ================= REVIEWS =================
+
+  // Thêm review mới vào Sub-collection của Product
+  Future<void> addReview(ReviewModel review) async {
+    await _db
+        .collection('products')
+        .doc(review.productId)
+        .collection('reviews')
+        .add(review.toMap());
+  }
+
+  // Lấy danh sách review của một sản phẩm cụ thể (Stream)
+  Stream<List<ReviewModel>> getProductReviews(String productId) {
+    return _db
+        .collection('products')
+        .doc(productId)
+        .collection('reviews')
+        .snapshots()
+        .map((snapshot) => snapshot.docs
+            .map((doc) => ReviewModel.fromMap(doc.id, doc.data()))
+            .toList());
   }
 
   // --- QUẢN LÝ ĐÁNH GIÁ (UC21, UC22) ---

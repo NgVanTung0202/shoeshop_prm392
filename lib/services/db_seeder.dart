@@ -1,18 +1,19 @@
+import 'package:flutter/foundation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-class DbSeeder {
-  static Future<void> seedAll() async {
+class DBSeeder {
+
+  static Future<void> seedDatabase() async {
+
     final db = FirebaseFirestore.instance;
 
-    print("--- BẮT ĐẦU BƠM DỮ LIỆU MẪU ---");
+    debugPrint("Start seeding database...");
 
-    // 1. Tạo Categories (UC17, 18)
-    // Lưu lại ID để gán cho Product sau này
-    final catSneaker = await db.collection('categories').add({'name': 'Sneaker'});
-    final catSandal = await db.collection('categories').add({'name': 'Sandal'});
-    final catBoots = await db.collection('categories').add({'name': 'Boots'});
-
-    print("✔ Đã tạo 3 Danh mục");
+ update-code
+    await db.collection("categories").add({
+      "name": "Sneakers",
+      "imageUrl": ""
+    });
 
     // 2. Tạo Products mẫu (UC07, 15, 16)
     // Dữ liệu bao gồm: name, price, categoryId, imageUrl, description, stock, brand
@@ -45,23 +46,32 @@ class DbSeeder {
         'sizes_stock': {'36': 10, '37': 10, '38': 10, '39': 10},
       }
     ];
+ main
 
-    for (var p in products) {
-      await db.collection('products').add(p);
-    }
-    print("✔ Đã tạo 3 Sản phẩm mẫu");
-
-    // 3. Tạo User mẫu (Nếu bạn muốn test login/role ngay) - UC06
-    // Lưu ý: User này chỉ có trên Firestore, muốn login được vẫn phải tạo bên Auth
-    await db.collection('users').doc('admin_test_id').set({
-      'uid': 'admin_test_id',
-      'email': 'admin@shoeshop.com',
-      'fullName': 'Quản Trị Viên',
-      'role': 'admin',
-      'phoneNumber': '0901234567',
-      'address': 'Hà Nội, Việt Nam',
-      'createdAt': FieldValue.serverTimestamp(),
+    await db.collection("categories").add({
+      "name": "Running",
+      "imageUrl": ""
     });
+
+    debugPrint("Categories seeded");
+
+    await db.collection("products").add({
+      "name": "Nike Air Max",
+      "brand": "Nike",
+      "price": 2500000,
+      "categoryId": "",
+      "imageUrl": "",
+      "description": "Comfort running shoes",
+      "sizesStock": {
+        "39": 5,
+        "40": 3
+      }
+    });
+
+ update-code
+    debugPrint("Products seeded");
+
+    debugPrint("Database seed completed");
 
     print("✔ Đã tạo User Admin mẫu");
 
@@ -112,5 +122,6 @@ class DbSeeder {
     print("✔ Đã tạo các Đơn hàng mẫu (để xem Chart)");
 
     print("--- HOÀN TẤT SEED DỮ LIỆU ---");
+ main
   }
 }
