@@ -1,5 +1,4 @@
 import 'dart:io';
-
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 
@@ -59,11 +58,7 @@ class FirestoreService {
     });
   }
 
-  Future<void> updateCategory(
-    String id,
-    String name, {
-    String imageUrl = "",
-  }) async {
+  Future<void> updateCategory(String id, String name, {String imageUrl = ""}) async {
     await _db.collection("categories").doc(id).update({
       "name": name,
       "imageUrl": imageUrl,
@@ -97,8 +92,10 @@ class FirestoreService {
     await _db.collection("products").doc(id).delete();
     if (imageUrl.isNotEmpty) {
       try {
-        await FirebaseStorage.instance.refFromURL(imageUrl).delete();
-      } catch (_) {}
+        await _storage.refFromURL(imageUrl).delete();
+      } catch (_) {
+        // Bỏ qua nếu ảnh không tồn tại trên storage
+      }
     }
   }
 
@@ -113,26 +110,25 @@ class FirestoreService {
 
   /// ================= REVIEWS =================
 
+  // Thêm review mới (Sử dụng collection 'reviews' riêng để dễ quản lý)
   Future<void> addReview(ReviewModel review) async {
-    await _db
-        .collection('products')
-        .doc(review.productId)
-        .collection('reviews')
-        .add(review.toMap());
+    await _db.collection('reviews').doc(review.id).set(review.toMap());
   }
 
+  // Lấy danh sách review của một sản phẩm
   Stream<List<ReviewModel>> getProductReviews(String productId) {
-    return _db
-        .collection('products')
-        .doc(productId)
-        .collection('reviews')
+    return _db.collection('reviews')
+        .where('productId', isEqualTo: productId)
         .snapshots()
-        .map(
-          (snapshot) =>
-              snapshot.docs
-                  .map((doc) => ReviewModel.fromMap(doc.id, doc.data()))
-                  .toList(),
-        );
+        .map((snap) {
+      final list = snap.docs
+          .map((doc) => ReviewModel.fromMap(doc.id, doc.data()))
+          .toList();
+
+      // Sắp xếp theo thời gian mới nhất (bản main)
+      list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      return list;
+    });
   }
 
   /// ================= ORDERS =================
@@ -142,11 +138,8 @@ class FirestoreService {
         .collection('orders')
         .orderBy('createdAt', descending: true)
         .snapshots()
-        .map(
-          (snap) =>
-              snap.docs
-                  .map((doc) => OrderModel.fromFirestore(doc.id, doc.data()))
-                  .toList(),
-        );
+        .map((snap) => snap.docs
+        .map((doc) => OrderModel.fromFirestore(doc.id, doc.data()))
+        .toList());
   }
 }

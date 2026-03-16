@@ -14,8 +14,8 @@ class ReviewModel {
     required this.productId,
     required this.userId,
     required this.userName,
-    required this.rating,
     required this.comment,
+    required this.rating,
     required this.createdAt,
   });
 
@@ -24,24 +24,27 @@ class ReviewModel {
       'productId': productId,
       'userId': userId,
       'userName': userName,
-      'rating': rating,
       'comment': comment,
+      'rating': rating,
       'createdAt': Timestamp.fromDate(createdAt),
     };
   }
 
-  factory ReviewModel.fromMap(String id, Map<String, dynamic> data) {
+  factory ReviewModel.fromFirestore(String id, Map<String, dynamic> data) {
     return ReviewModel(
       id: id,
       productId: data['productId'] ?? '',
       userId: data['userId'] ?? '',
       userName: data['userName'] ?? 'Customer',
-      rating: (data['rating'] ?? 0).toDouble(),
       comment: data['comment'] ?? '',
-      createdAt:
-          data['createdAt'] is Timestamp
-              ? (data['createdAt'] as Timestamp).toDate()
-              : DateTime.now(),
+      rating: (data['rating'] ?? 0).toDouble(),
+      createdAt: data['createdAt'] is Timestamp
+          ? (data['createdAt'] as Timestamp).toDate()
+          : DateTime.now(),
     );
   }
+
+
+  factory ReviewModel.fromMap(String id, Map<String, dynamic> data) =>
+      ReviewModel.fromFirestore(id, data);
 }
