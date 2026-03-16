@@ -93,7 +93,9 @@ class FirestoreService {
     if (imageUrl.isNotEmpty) {
       try {
         await _storage.refFromURL(imageUrl).delete();
-      } catch (_) {}
+      } catch (_) {
+        // Bỏ qua nếu ảnh không tồn tại trên storage
+      }
     }
   }
 
@@ -107,35 +109,33 @@ class FirestoreService {
   }
 
   /// ================= REVIEWS =================
-  /// Lưu ý: Sử dụng bộ sưu tập 'reviews' riêng biệt để dễ quản lý thống kê
 
-  // Thêm review mới
+  // Thêm review mới (Sử dụng collection 'reviews' riêng để dễ quản lý)
   Future<void> addReview(ReviewModel review) async {
-    // Sử dụng doc(id).set thay vì add() để tránh tạo trùng hoặc ID rác nếu đã có ID
     await _db.collection('reviews').doc(review.id).set(review.toMap());
   }
 
-  // Lấy danh sách review của một sản phẩm (Sắp xếp theo thời gian mới nhất)
+  // Lấy danh sách review của một sản phẩm
   Stream<List<ReviewModel>> getProductReviews(String productId) {
     return _db.collection('reviews')
         .where('productId', isEqualTo: productId)
         .snapshots()
         .map((snap) {
       final list = snap.docs
-          .map((doc) => ReviewModel.fromFirestore(doc.id, doc.data()))
+          .map((doc) => ReviewModel.fromMap(doc.id, doc.data()))
           .toList();
 
-      // Sắp xếp thủ công tại Client để không cần tạo Index trên Firebase Console
+      // Sắp xếp theo thời gian mới nhất (bản main)
       list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
       return list;
     });
   }
 
   /// ================= ORDERS =================
-  /// (Dùng cho Dashboard và quản lý đơn hàng)
 
   Stream<List<OrderModel>> getAllOrders() {
-    return _db.collection('orders')
+    return _db
+        .collection('orders')
         .orderBy('createdAt', descending: true)
         .snapshots()
         .map((snap) => snap.docs

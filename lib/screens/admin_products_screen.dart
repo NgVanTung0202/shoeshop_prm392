@@ -6,7 +6,7 @@ import 'dart:io';
 import '../models/product_model.dart';
 import '../models/category_model.dart';
 import '../services/firestore_service.dart';
-import '../services/db_seeder.dart';
+// Đã loại bỏ DBSeeder import
 import '../widgets/admin_drawer.dart';
 import 'admin_dashboard_screen.dart';
 
@@ -22,7 +22,7 @@ class _AdminProductsScreenState extends State<AdminProductsScreen> {
   File? _selectedImage;
   final TextEditingController _searchController = TextEditingController();
 
-  String _searchQuery = ''; // Đổi thành biến thường để cập nhật được
+  String _searchQuery = '';
   String? _filterCategoryId;
 
   final List<String> shoeSizes = ['36', '37', '38', '39', '40', '41', '42', '43', '44'];
@@ -56,7 +56,7 @@ class _AdminProductsScreenState extends State<AdminProductsScreen> {
     });
   }
 
-
+  // --- Xác nhận xóa ---
   void _confirmDelete(ProductModel product) {
     showDialog(
       context: context,
@@ -104,8 +104,8 @@ class _AdminProductsScreenState extends State<AdminProductsScreen> {
 
     showDialog(
       context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setDialogState) => AlertDialog(
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (dialogContext, setDialogState) => AlertDialog(
           title: Text(isEditing ? "Cập nhật sản phẩm" : "Thêm giày mới"),
           content: SizedBox(
             width: double.maxFinite,
@@ -121,7 +121,7 @@ class _AdminProductsScreenState extends State<AdminProductsScreen> {
                         color: const Color(0xFFF0F1F5),
                         borderRadius: BorderRadius.circular(10),
                       ),
-                      child: (_selectedImage != null)
+                      child: (!kIsWeb && _selectedImage != null)
                           ? Image.file(_selectedImage!, fit: BoxFit.cover)
                           : (isEditing && product.imageUrl.isNotEmpty)
                           ? Image.network(product.imageUrl, fit: BoxFit.cover)
@@ -167,14 +167,17 @@ class _AdminProductsScreenState extends State<AdminProductsScreen> {
             ),
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(context), child: const Text("Hủy")),
+            TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text("Hủy")),
             ElevatedButton(
               onPressed: isSaving ? null : () async {
-                if (dialogCategoryId == null || nameController.text.isEmpty) return;
+                if (dialogCategoryId == null || nameController.text.trim().isEmpty) {
+                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Vui lòng điền đủ thông tin")));
+                  return;
+                }
                 setDialogState(() => isSaving = true);
                 try {
                   String finalImageUrl = isEditing ? product.imageUrl : '';
-                  if (_selectedImage != null) finalImageUrl = await _fs.uploadImage(_selectedImage!);
+                  if (!kIsWeb && _selectedImage != null) finalImageUrl = await _fs.uploadImage(_selectedImage!);
 
                   Map<String, int> inventory = {for (var s in shoeSizes) s: int.tryParse(sizeControllers[s]!.text) ?? 0};
 
@@ -190,7 +193,8 @@ class _AdminProductsScreenState extends State<AdminProductsScreen> {
                   );
 
                   isEditing ? await _fs.updateProduct(p) : await _fs.addProduct(p);
-                  if (mounted) Navigator.pop(context);
+                  if (!mounted) return;
+                  Navigator.pop(dialogContext);
                 } catch (e) {
                   ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Lỗi: $e")));
                 } finally {
@@ -209,29 +213,13 @@ class _AdminProductsScreenState extends State<AdminProductsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        centerTitle: true,
         title: const Text("Kho Sản Phẩm", style: TextStyle(fontWeight: FontWeight.w600)),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.data_object),
-            onPressed: () async {
-              // Sửa DbSeeder thành DBSeeder (viết hoa chữ B)
-              await DBSeeder.seedAll();
-              if (mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Đã tạo data mẫu!'))
-                );
-              }
-            },
-          ),
+          // Đã xóa nút Seed Data
           IconButton(
             icon: const Icon(Icons.bar_chart),
-            onPressed: () => Navigator.push(
-                context,
-                MaterialPageRoute(
-                  // Xóa chữ const ở đây
-                    builder: (context) => AdminDashboardScreen()
-                )
-            ),
+            onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => AdminDashboardScreen())),
           ),
         ],
       ),
@@ -247,9 +235,16 @@ class _AdminProductsScreenState extends State<AdminProductsScreen> {
           if (snapshot.hasError) return const Center(child: Text("Lỗi tải dữ liệu"));
 
           List<ProductModel> products = snapshot.data ?? [];
-          // Logic tìm kiếm & lọc (nếu có)
+
           if (_searchQuery.isNotEmpty) {
-            products = products.where((p) => p.name.toLowerCase().contains(_searchQuery.toLowerCase())).toList();
+            products = products.where((p) {
+              final name = p.name.toLowerCase();
+              final brand = p.brand.toLowerCase();
+              return name.contains(_searchQuery.toLowerCase()) || brand.contains(_searchQuery.toLowerCase());
+            }).toList();
+          }
+          if (_filterCategoryId != null) {
+            products = products.where((p) => p.categoryId == _filterCategoryId).toList();
           }
 
           return ListView.builder(
@@ -259,10 +254,13 @@ class _AdminProductsScreenState extends State<AdminProductsScreen> {
               return ListTile(
                 leading: ClipRRect(
                   borderRadius: BorderRadius.circular(8),
-                  child: Image.network(p.imageUrl, width: 50, height: 50, fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => const Icon(Icons.image_not_supported)),
+                  child: Image.network(
+                    p.imageUrl,
+                    width: 55, height: 55, fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) => const Icon(Icons.image_not_supported),
+                  ),
                 ),
-                title: Text(p.name),
+                title: Text(p.name, style: const TextStyle(fontWeight: FontWeight.bold)),
                 subtitle: Text("${p.brand} • ${p.price.toInt()}đ"),
                 trailing: Row(
                   mainAxisSize: MainAxisSize.min,
