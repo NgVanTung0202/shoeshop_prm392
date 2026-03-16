@@ -1,69 +1,149 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
 
-class DbSeeder {
+class DBSeeder {
   static Future<void> seedAll() async {
-    final db = FirebaseFirestore.instance;
+    await seedDatabase();
+  }
 
-    print("--- BẮT ĐẦU BƠM DỮ LIỆU MẪU ---");
+  static Future<void> seedDatabase() async {
+    final FirebaseFirestore db = FirebaseFirestore.instance;
 
-    // 1. Tạo Categories (UC17, 18)
-    // Lưu lại ID để gán cho Product sau này
-    final catSneaker = await db.collection('categories').add({'name': 'Sneaker'});
-    final catSandal = await db.collection('categories').add({'name': 'Sandal'});
-    final catBoots = await db.collection('categories').add({'name': 'Boots'});
+    debugPrint('Start seeding database...');
 
-    print("✔ Đã tạo 3 Danh mục");
+    final DocumentReference<Map<String, dynamic>> catSneakerRef = db
+        .collection('categories')
+        .doc('seed_sneakers');
+    final DocumentReference<Map<String, dynamic>> catRunningRef = db
+        .collection('categories')
+        .doc('seed_running');
+    final DocumentReference<Map<String, dynamic>> catSandalRef = db
+        .collection('categories')
+        .doc('seed_sandal');
 
-    // 2. Tạo Products mẫu (UC07, 15, 16)
-    // Dữ liệu bao gồm: name, price, categoryId, imageUrl, description, stock, brand
-    List<Map<String, dynamic>> products = [
+    await catSneakerRef.set({'name': 'Sneakers', 'imageUrl': ''});
+    await catRunningRef.set({'name': 'Running', 'imageUrl': ''});
+    await catSandalRef.set({'name': 'Sandal', 'imageUrl': ''});
+
+    debugPrint('Categories seeded');
+
+    final List<Map<String, dynamic>> products = <Map<String, dynamic>>[
       {
+        'docId': 'seed_nike_air_max_2026',
         'name': 'Nike Air Max 2026',
         'price': 2500000.0,
-        'categoryId': catSneaker.id,
+        'categoryId': catSneakerRef.id,
         'brand': 'Nike',
-        'imageUrl': 'https://static.nike.com/a/images/t_PDP_1280_v1/f_auto,q_auto:eco/99486149-0345-41ef-8b89-4670081d5f2a/air-force-1-07-shoes-Wr0Q1H.png',
-        'description': 'Mẫu giày chạy bộ cao cấp nhất của Nike năm 2026.',
-        'stock': 15,
+        'imageUrl':
+            'https://static.nike.com/a/images/t_PDP_1280_v1/f_auto,q_auto:eco/99486149-0345-41ef-8b89-4670081d5f2a/air-force-1-07-shoes-Wr0Q1H.png',
+        'description': 'Mau giay chay bo cao cap nhat cua Nike nam 2026.',
+        'sizes_stock': {'39': 5, '40': 5, '41': 6, '42': 4},
       },
       {
+        'docId': 'seed_adidas_ultraboost_v5',
         'name': 'Adidas UltraBoost v5',
         'price': 3200000.0,
-        'categoryId': catSneaker.id,
+        'categoryId': catRunningRef.id,
         'brand': 'Adidas',
-        'imageUrl': 'https://assets.adidas.com/images/h_840,f_auto,q_auto,fl_lossy,c_fill,g_auto/0f4327463f6449179017af3200057f97_9366/Giay_UltraBoost_Light_trang_HQ6351_01_standard.jpg',
-        'description': 'Sự kết hợp hoàn hảo giữa thời trang và hiệu năng.',
-        'stock': 10,
+        // Note: some brand CDNs may return 404 later; use a stable placeholder endpoint for seeded demo data.
+        'imageUrl':
+            'https://picsum.photos/seed/shoeshop_adidas_ultraboost/1024/1024',
+        'description': 'Su ket hop hoan hao giua thoi trang va hieu nang.',
+        'sizes_stock': {'38': 2, '39': 10, '40': 15, '41': 3},
       },
       {
+        'docId': 'seed_classic_sandal_xl',
         'name': 'Classic Sandal XL',
         'price': 450000.0,
-        'categoryId': catSandal.id,
+        'categoryId': catSandalRef.id,
         'brand': 'Bitis',
-        'imageUrl': 'https://bitis.com.vn/cdn/shop/products/3_84967394-3758-4503-912b-7b089c25f190_1024x1024.jpg',
-        'description': 'Sandal bền bỉ cho mùa hè năng động.',
-        'stock': 50,
-      }
+        'imageUrl':
+            'https://picsum.photos/seed/shoeshop_bitis_sandal/1024/1024',
+        'description': 'Sandal ben bi cho mua he nang dong.',
+        'sizes_stock': {'36': 10, '37': 10, '38': 10, '39': 10},
+      },
     ];
 
-    for (var p in products) {
-      await db.collection('products').add(p);
+    for (final Map<String, dynamic> p in products) {
+      final String docId = p.remove('docId') as String;
+      await db.collection('products').doc(docId).set(p);
     }
-    print("✔ Đã tạo 3 Sản phẩm mẫu");
 
-    // 3. Tạo User mẫu (Nếu bạn muốn test login/role ngay) - UC06
-    // Lưu ý: User này chỉ có trên Firestore, muốn login được vẫn phải tạo bên Auth
-    await db.collection('users').doc('admin_test_id').set({
-      'uid': 'admin_test_id',
-      'email': 'admin@shoeshop.com',
-      'fullName': 'Quản Trị Viên',
+    debugPrint('Products seeded');
+
+    await db.collection('users').doc('seed_admin').set({
+      'email': 'admin@shoeshop.local',
+      'name': 'Admin',
       'role': 'admin',
-      'phoneNumber': '0901234567',
-      'address': 'Hà Nội, Việt Nam',
-      'createdAt': FieldValue.serverTimestamp(),
+      'createdAt': Timestamp.now(),
     });
 
-    print("✔ Đã tạo User Admin mẫu");
-    print("--- HOÀN TẤT SEED DỮ LIỆU ---");
+    debugPrint('Admin user seeded');
+
+    final DateTime today = DateTime.now();
+    final List<Map<String, dynamic>> orders = <Map<String, dynamic>>[
+      {
+        'id': 'ORD-001',
+        'userId': 'customer_test_id',
+        'items': <Map<String, dynamic>>[],
+        'totalPrice': 1200000.0,
+        'status': 'completed',
+        'address': 'Ha Noi',
+        'phone': '0000000000',
+        'paymentMethod': 'cod',
+        'paymentStatus': 'paid',
+        'createdAt': Timestamp.fromDate(today),
+      },
+      {
+        'id': 'ORD-002',
+        'userId': 'customer_test_id',
+        'items': <Map<String, dynamic>>[],
+        'totalPrice': 2500000.0,
+        'status': 'completed',
+        'address': 'HCM',
+        'phone': '0000000000',
+        'paymentMethod': 'cod',
+        'paymentStatus': 'paid',
+        'createdAt': Timestamp.fromDate(
+          today.subtract(const Duration(days: 1)),
+        ),
+      },
+      {
+        'id': 'ORD-003',
+        'userId': 'customer_test_id',
+        'items': <Map<String, dynamic>>[],
+        'totalPrice': 450000.0,
+        'status': 'completed',
+        'address': 'Da Nang',
+        'phone': '0000000000',
+        'paymentMethod': 'cod',
+        'paymentStatus': 'paid',
+        'createdAt': Timestamp.fromDate(
+          today.subtract(const Duration(days: 2)),
+        ),
+      },
+      {
+        'id': 'ORD-004',
+        'userId': 'customer_test_id',
+        'items': <Map<String, dynamic>>[],
+        'totalPrice': 3200000.0,
+        'status': 'completed',
+        'address': 'Hai Phong',
+        'phone': '0000000000',
+        'paymentMethod': 'cod',
+        'paymentStatus': 'paid',
+        'createdAt': Timestamp.fromDate(
+          today.subtract(const Duration(days: 5)),
+        ),
+      },
+    ];
+
+    for (final Map<String, dynamic> o in orders) {
+      final String id = o['id'] as String;
+      await db.collection('orders').doc(id).set(o);
+    }
+
+    debugPrint('Orders seeded');
+    debugPrint('Database seed completed');
   }
 }

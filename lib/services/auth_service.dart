@@ -2,34 +2,45 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class AuthService {
+
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _db = FirebaseFirestore.instance;
 
-  // Đăng ký (UC01)
-  Future<User?> signUp(String email, String password, String fullName) async {
-    UserCredential result = await _auth.createUserWithEmailAndPassword(
-        email: email, password: password);
-    User? user = result.user;
+  Future<User?> signUp(
+      String email,
+      String password,
+      String name) async {
 
-    if (user != null) {
-      await _db.collection('users').doc(user.uid).set({
-        'uid': user.uid,
-        'email': email,
-        'fullName': fullName,
-        'role': 'customer',
-        'createdAt': FieldValue.serverTimestamp(),
-      });
-    }
-    return user;
+    UserCredential credential =
+        await _auth.createUserWithEmailAndPassword(
+      email: email,
+      password: password,
+    );
+
+    await _db.collection("users").doc(credential.user!.uid).set({
+      "email": email,
+      "name": name,
+      "role": "customer",
+      "createdAt": Timestamp.now()
+    });
+
+    return credential.user;
   }
 
-  // Đăng nhập (UC02)
-  Future<User?> signIn(String email, String password) async {
-    UserCredential result = await _auth.signInWithEmailAndPassword(
-        email: email, password: password);
-    return result.user;
+  Future<User?> signIn(
+      String email,
+      String password) async {
+
+    UserCredential credential =
+        await _auth.signInWithEmailAndPassword(
+      email: email,
+      password: password,
+    );
+
+    return credential.user;
   }
 
-  // Đăng xuất (UC03)
-  Future<void> signOut() async => await _auth.signOut();
+  Future<void> logout() async {
+    await _auth.signOut();
+  }
 }
