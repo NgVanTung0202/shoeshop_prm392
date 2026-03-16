@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
+import 'package:image_picker/image_picker.dart';
 
 import '../models/category_model.dart';
 import '../models/product_model.dart';
@@ -33,6 +34,85 @@ class FirestoreService {
     await _db.collection("users").doc(uid).update({
       "name": name,
       "phone": phone,
+    });
+  }
+
+  /// Upload ảnh đại diện lên Storage rồi cập nhật Firestore
+  Future<void> updateProfileWithAvatar({
+    required String uid,
+    required String name,
+    required String phone,
+    File? avatarFile,
+    String? existingAvatarUrl,
+  }) async {
+    String? avatarUrl = existingAvatarUrl;
+
+    if (avatarFile != null) {
+      final ref = _storage.ref().child("avatars/$uid.jpg");
+      await ref.putFile(avatarFile);
+      avatarUrl = await ref.getDownloadURL();
+    }
+
+    await _db.collection("users").doc(uid).update({
+      "name": name,
+      "phone": phone,
+      if (avatarUrl != null) "avatarUrl": avatarUrl,
+    });
+  }
+
+  /// Upload avatar dùng XFile (hoạt động trên Web, Windows, Android, iOS)
+  /// Trả về URL mới nếu có upload, null nếu không đổi ảnh
+  Future<String?> updateProfileWithAvatarXFile({
+    required String uid,
+    required String name,
+    required String phone,
+    XFile? xfile,
+    String? existingAvatarUrl,
+  }) async {
+    String? avatarUrl = existingAvatarUrl;
+
+    if (xfile != null) {
+      final ref = _storage.ref().child("avatars/$uid.jpg");
+      final bytes = await xfile.readAsBytes();
+      final metadata = SettableMetadata(contentType: "image/jpeg");
+      await ref.putData(bytes, metadata);
+      avatarUrl = await ref.getDownloadURL();
+    }
+
+    await _db.collection("users").doc(uid).update({
+      "name": name,
+      "phone": phone,
+      if (avatarUrl != null) "avatarUrl": avatarUrl,
+    });
+
+    return xfile != null ? avatarUrl : null;
+  }
+  Future<void> createStaffAccount({
+    required String email,
+    required String name,
+    required String phone,
+    required String role,
+  }) async {
+    await _db.collection("users").add({
+      "email": email,
+      "name": name,
+      "phone": phone,
+      "role": role,
+      "createdAt": Timestamp.now(),
+    });
+  }
+
+  /// Admin cập nhật thông tin user (name, phone, role)
+  Future<void> updateUserInfo({
+    required String uid,
+    required String name,
+    required String phone,
+    required String role,
+  }) async {
+    await _db.collection("users").doc(uid).update({
+      "name": name,
+      "phone": phone,
+      "role": role,
     });
   }
 
