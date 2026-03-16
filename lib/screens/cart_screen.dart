@@ -41,6 +41,63 @@ class _CartScreenState extends State<CartScreen> {
     });
   }
 
+  void _incrementQuantity(CartItem item) {
+    setState(() {
+      item.quantity += 1;
+    });
+  }
+
+  void _decrementQuantity(CartItem item) {
+    if (item.quantity <= 1) {
+      _removeItem(item);
+      return;
+    }
+
+    setState(() {
+      item.quantity -= 1;
+    });
+  }
+
+  Widget _buildQuantityStepper(CartItem item) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: Colors.blue.shade100),
+        color: Colors.white,
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          IconButton(
+            tooltip: 'Giảm',
+            onPressed: () => _decrementQuantity(item),
+            icon: const Icon(Icons.remove_circle_outline),
+            iconSize: 20,
+            visualDensity: VisualDensity.compact,
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+          ),
+          const SizedBox(width: 6),
+          Text(
+            item.quantity.toString(),
+            style: const TextStyle(fontWeight: FontWeight.w700),
+          ),
+          const SizedBox(width: 6),
+          IconButton(
+            tooltip: 'Tăng',
+            onPressed: () => _incrementQuantity(item),
+            icon: const Icon(Icons.add_circle_outline),
+            iconSize: 20,
+            visualDensity: VisualDensity.compact,
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+          ),
+        ],
+      ),
+    );
+  }
+
   void _clearCart() {
     _cartService.clear();
     setState(() {
@@ -162,13 +219,15 @@ class _CartScreenState extends State<CartScreen> {
                                     ),
                                     const SizedBox(height: 4),
                                     Text(
-                                      'Size ${item.size} • SL: ${item.quantity}',
+                                      'Size ${item.size}',
                                       style: TextStyle(
                                         color: Colors.grey.shade700,
                                         fontSize: 12,
                                       ),
                                     ),
-                                    const SizedBox(height: 6),
+                                    const SizedBox(height: 8),
+                                    _buildQuantityStepper(item),
+                                    const SizedBox(height: 8),
                                     Text(
                                       formatPrice(
                                         item.product.price * item.quantity,
@@ -181,13 +240,18 @@ class _CartScreenState extends State<CartScreen> {
                                   ],
                                 ),
                               ),
-                              IconButton(
-                                tooltip: 'Xoá',
-                                icon: const Icon(
-                                  Icons.delete_outline,
-                                  color: Colors.redAccent,
-                                ),
-                                onPressed: () => _removeItem(item),
+                              Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  IconButton(
+                                    tooltip: 'Xoá',
+                                    icon: const Icon(
+                                      Icons.delete_outline,
+                                      color: Colors.redAccent,
+                                    ),
+                                    onPressed: () => _removeItem(item),
+                                  ),
+                                ],
                               ),
                             ],
                           ),
