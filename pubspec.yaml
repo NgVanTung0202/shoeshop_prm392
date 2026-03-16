@@ -33,6 +33,10 @@ dependencies:
   intl: ^0.19.0
   uuid: ^4.4.0
 
+  # Animations
+  simple_animations: ^4.0.1
+  supercharged: ^2.1.1
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
