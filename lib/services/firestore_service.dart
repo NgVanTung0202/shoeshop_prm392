@@ -41,6 +41,59 @@ class FirestoreService {
     });
   }
 
+  /// Upload ảnh đại diện lên Storage rồi cập nhật Firestore
+  Future<void> updateProfileWithAvatar({
+    required String uid,
+    required String name,
+    required String phone,
+    File? avatarFile,
+    String? existingAvatarUrl,
+  }) async {
+    String? avatarUrl = existingAvatarUrl;
+
+    if (avatarFile != null) {
+      final ref = _storage.ref().child("avatars/$uid.jpg");
+      await ref.putFile(avatarFile);
+      avatarUrl = await ref.getDownloadURL();
+    }
+
+    await _db.collection("users").doc(uid).update({
+      "name": name,
+      "phone": phone,
+      if (avatarUrl != null) "avatarUrl": avatarUrl,
+    });
+  }
+
+  /// Admin tạo tài khoản nhân viên (chỉ lưu Firestore, không tạo Auth)
+  Future<void> createStaffAccount({
+    required String email,
+    required String name,
+    required String phone,
+    required String role,
+  }) async {
+    await _db.collection("users").add({
+      "email": email,
+      "name": name,
+      "phone": phone,
+      "role": role,
+      "createdAt": Timestamp.now(),
+    });
+  }
+
+  /// Admin cập nhật thông tin user (name, phone, role)
+  Future<void> updateUserInfo({
+    required String uid,
+    required String name,
+    required String phone,
+    required String role,
+  }) async {
+    await _db.collection("users").doc(uid).update({
+      "name": name,
+      "phone": phone,
+      "role": role,
+    });
+  }
+
   /// ================= CATEGORY =================
 
   Stream<List<CategoryModel>> getCategories() {

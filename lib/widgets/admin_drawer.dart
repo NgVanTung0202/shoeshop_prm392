@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../screens/admin_home_screen.dart';
 import '../screens/admin_products_screen.dart';
 import '../screens/admin_category_screen.dart';
+import '../services/auth_service.dart';
 
 enum AdminMenuItem { dashboard, products, categories, other }
 
@@ -120,9 +121,12 @@ class AdminDrawer extends StatelessWidget {
             ListTile(
               leading: const Icon(Icons.logout, color: Colors.red),
               title: const Text("Đăng xuất"),
-              onTap: () {
+              onTap: () async {
                 Navigator.pop(context);
-                Navigator.pushReplacementNamed(context, '/login');
+                await AuthService().logout();
+                if (context.mounted) {
+                  Navigator.pushReplacementNamed(context, '/login');
+                }
               },
             ),
           ],
