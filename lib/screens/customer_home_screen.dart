@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/product_model.dart';
 import '../models/category_model.dart';
 import '../services/firestore_service.dart';
@@ -24,8 +25,32 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
   final AuthService _authService = AuthService();
 
   String selectedCategoryId = "All";
+  String? _avatarUrl;
+  String? _displayName;
 
   User? get currentUser => FirebaseAuth.instance.currentUser;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUserInfo();
+  }
+
+  Future<void> _loadUserInfo() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+    final doc = await FirebaseFirestore.instance
+        .collection("users")
+        .doc(user.uid)
+        .get();
+    final data = doc.data();
+    if (data != null && mounted) {
+      setState(() {
+        _avatarUrl = data["avatarUrl"];
+        _displayName = data["name"];
+      });
+    }
+  }
 
   Future<void> _handleLogout() async {
 
@@ -95,13 +120,20 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
           UserAccountsDrawerHeader(
             decoration: const BoxDecoration(color: Colors.blue),
 
-            currentAccountPicture: const CircleAvatar(
+            currentAccountPicture: CircleAvatar(
               backgroundColor: Colors.white,
-              child: Icon(Icons.person, size: 40, color: Colors.blue),
+              backgroundImage: (_avatarUrl != null && _avatarUrl!.isNotEmpty)
+                  ? NetworkImage(_avatarUrl!)
+                  : null,
+              child: (_avatarUrl == null || _avatarUrl!.isEmpty)
+                  ? const Icon(Icons.person, size: 40, color: Colors.blue)
+                  : null,
             ),
 
             accountName: Text(
-              currentUser?.email?.split('@')[0] ?? "Khách hàng",
+              _displayName?.isNotEmpty == true
+                  ? _displayName!
+                  : (currentUser?.email?.split('@')[0] ?? "Khách hàng"),
               style: const TextStyle(fontWeight: FontWeight.bold),
             ),
 
@@ -134,7 +166,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
                 MaterialPageRoute(
                   builder: (_) => const ProfileScreen(),
                 ),
-              );
+              ).then((_) => _loadUserInfo());
             },
           ),
 

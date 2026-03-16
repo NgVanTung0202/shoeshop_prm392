@@ -2,9 +2,10 @@ import 'package:flutter/material.dart';
 import '../screens/admin_home_screen.dart';
 import '../screens/admin_products_screen.dart';
 import '../screens/admin_category_screen.dart';
+import '../screens/admin_users_screen.dart';
 import '../services/auth_service.dart';
 
-enum AdminMenuItem { dashboard, products, categories, other }
+enum AdminMenuItem { dashboard, products, categories, users, other }
 
 class AdminDrawer extends StatelessWidget {
   final AdminMenuItem selected;
@@ -99,6 +100,24 @@ class AdminDrawer extends StatelessWidget {
                     context,
                     MaterialPageRoute(
                       builder: (_) => const AdminCategoryScreen(),
+                    ),
+                  );
+                }
+              },
+            ),
+
+            ListTile(
+              leading: const Icon(Icons.people, color: Colors.blue),
+              title: const Text("Quản lý người dùng"),
+              selected: selected == AdminMenuItem.users,
+              selectedColor: Colors.blue,
+              onTap: () {
+                Navigator.pop(context);
+                if (selected != AdminMenuItem.users) {
+                  Navigator.pushReplacement(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => AdminUsersScreen(),
                     ),
                   );
                 }

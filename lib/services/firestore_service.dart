@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
+import 'package:image_picker/image_picker.dart';
 
 import '../models/category_model.dart';
  update-code
@@ -64,7 +65,33 @@ class FirestoreService {
     });
   }
 
-  /// Admin tạo tài khoản nhân viên (chỉ lưu Firestore, không tạo Auth)
+  /// Upload avatar dùng XFile (hoạt động trên Web, Windows, Android, iOS)
+  /// Trả về URL mới nếu có upload, null nếu không đổi ảnh
+  Future<String?> updateProfileWithAvatarXFile({
+    required String uid,
+    required String name,
+    required String phone,
+    XFile? xfile,
+    String? existingAvatarUrl,
+  }) async {
+    String? avatarUrl = existingAvatarUrl;
+
+    if (xfile != null) {
+      final ref = _storage.ref().child("avatars/$uid.jpg");
+      final bytes = await xfile.readAsBytes();
+      final metadata = SettableMetadata(contentType: "image/jpeg");
+      await ref.putData(bytes, metadata);
+      avatarUrl = await ref.getDownloadURL();
+    }
+
+    await _db.collection("users").doc(uid).update({
+      "name": name,
+      "phone": phone,
+      if (avatarUrl != null) "avatarUrl": avatarUrl,
+    });
+
+    return xfile != null ? avatarUrl : null;
+  }
   Future<void> createStaffAccount({
     required String email,
     required String name,

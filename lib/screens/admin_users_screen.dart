@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+import '../screens/admin_home_screen.dart';
 import '../services/firestore_service.dart';
 import '../services/auth_service.dart';
+import '../widgets/admin_drawer.dart';
 
 class AdminUsersScreen extends StatelessWidget {
   final FirestoreService _fs = FirestoreService();
@@ -17,7 +19,6 @@ class AdminUsersScreen extends StatelessWidget {
     final emailCtrl = TextEditingController();
     final nameCtrl = TextEditingController();
     final phoneCtrl = TextEditingController();
-    final passwordCtrl = TextEditingController();
     String selectedRole = 'staff';
     bool loading = false;
 
@@ -41,9 +42,6 @@ class AdminUsersScreen extends StatelessWidget {
                     _buildField(phoneCtrl, "Số điện thoại", Icons.phone_outlined,
                         keyboard: TextInputType.phone),
                     const SizedBox(height: 12),
-                    _buildField(passwordCtrl, "Mật khẩu", Icons.lock_outline,
-                        obscure: true),
-                    const SizedBox(height: 12),
                     DropdownButtonFormField<String>(
                       initialValue: selectedRole,
                       decoration: const InputDecoration(
@@ -60,6 +58,31 @@ class AdminUsersScreen extends StatelessWidget {
                       onChanged: (v) =>
                           setDialogState(() => selectedRole = v ?? 'staff'),
                     ),
+                    const SizedBox(height: 8),
+                    // Ghi chú cho admin
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: Colors.blue.withValues(alpha: 0.08),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                            color: Colors.blue.withValues(alpha: 0.3)),
+                      ),
+                      child: const Row(
+                        children: [
+                          Icon(Icons.info_outline,
+                              size: 16, color: Colors.blue),
+                          SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              "Nhân viên sẽ dùng email này để tự đăng ký mật khẩu. Không cần xác thực email.",
+                              style:
+                                  TextStyle(fontSize: 12, color: Colors.blue),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -73,11 +96,11 @@ class AdminUsersScreen extends StatelessWidget {
                       ? null
                       : () async {
                           if (emailCtrl.text.trim().isEmpty ||
-                              nameCtrl.text.trim().isEmpty ||
-                              passwordCtrl.text.trim().isEmpty) {
+                              nameCtrl.text.trim().isEmpty) {
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(
-                                  content: Text("Vui lòng điền đầy đủ thông tin")),
+                                  content:
+                                      Text("Vui lòng điền đầy đủ thông tin")),
                             );
                             return;
                           }
@@ -85,36 +108,20 @@ class AdminUsersScreen extends StatelessWidget {
                           setDialogState(() => loading = true);
 
                           try {
-                            // Tạo Firebase Auth account
-                            await AuthService().signUp(
-                              emailCtrl.text.trim(),
-                              passwordCtrl.text.trim(),
-                              nameCtrl.text.trim(),
+                            // Chỉ lưu Firestore — không tạo Firebase Auth
+                            // Không làm mất session admin
+                            await AuthService().createStaffRecord(
+                              email: emailCtrl.text.trim(),
+                              name: nameCtrl.text.trim(),
+                              phone: phoneCtrl.text.trim(),
+                              role: selectedRole,
                             );
-
-                            // Cập nhật thêm phone + role đúng (signUp mặc định role=customer)
-                            final snap = await FirebaseFirestore.instance
-                                .collection("users")
-                                .where("email",
-                                    isEqualTo: emailCtrl.text.trim())
-                                .limit(1)
-                                .get();
-
-                            if (snap.docs.isNotEmpty) {
-                              await _fs.updateUserInfo(
-                                uid: snap.docs.first.id,
-                                name: nameCtrl.text.trim(),
-                                phone: phoneCtrl.text.trim(),
-                                role: selectedRole,
-                              );
-                            }
 
                             if (ctx.mounted) Navigator.pop(ctx);
                             if (context.mounted) {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 const SnackBar(
-                                    content:
-                                        Text("Tạo tài khoản thành công")),
+                                    content: Text("Đã tạo hồ sơ nhân viên thành công")),
                               );
                             }
                           } catch (e) {
@@ -329,8 +336,16 @@ class AdminUsersScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      drawer: const AdminDrawer(selected: AdminMenuItem.users),
       appBar: AppBar(
         title: const Text("Quản lý người dùng"),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (_) => const AdminHomeScreen()),
+          ),
+        ),
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _showCreateDialog(context),
