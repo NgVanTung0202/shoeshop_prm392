@@ -4,7 +4,9 @@ import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 
 import '../models/product_model.dart';
 import '../models/review_model.dart';
+import '../services/cart_service.dart';
 import '../services/firestore_service.dart';
+import '../utils/format_utils.dart';
 
 class ProductDetailScreen extends StatefulWidget {
   final ProductModel product;
@@ -16,10 +18,111 @@ class ProductDetailScreen extends StatefulWidget {
 }
 
 class _ProductDetailScreenState extends State<ProductDetailScreen> {
+  final CartService _cartService = CartService();
   final FirestoreService _fs = FirestoreService();
+  final TextEditingController _reviewController = TextEditingController();
   String? _selectedSize;
+  bool _animateHeroImage = false;
 
-  void _showAddReviewDialog() {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      setState(() {
+        _animateHeroImage = true;
+      });
+    });
+  }
+
+  @override
+  void dispose() {
+    _reviewController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _showTopSuccessDialog(String message) async {
+    final navigator = Navigator.of(context, rootNavigator: true);
+    bool alreadyClosed = false;
+
+    showGeneralDialog<void>(
+      context: context,
+      barrierDismissible: true,
+      barrierLabel: 'success',
+      barrierColor: Colors.transparent,
+      transitionDuration: const Duration(milliseconds: 260),
+      pageBuilder: (dialogContext, __, ___) {
+        return SafeArea(
+          child: Align(
+            alignment: Alignment.topCenter,
+            child: Material(
+              color: Colors.transparent,
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 520),
+                child: Container(
+                  margin: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 12,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(
+                      color: Colors.green.withValues(alpha: 0.25),
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(
+                        Icons.check_circle,
+                        color: Colors.green,
+                        size: 22,
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          message,
+                          style: const TextStyle(fontWeight: FontWeight.w600),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+      transitionBuilder: (context, animation, secondaryAnimation, child) {
+        final curved = CurvedAnimation(
+          parent: animation,
+          curve: Curves.easeOut,
+        );
+        return FadeTransition(
+          opacity: curved,
+          child: SlideTransition(
+            position: Tween<Offset>(
+              begin: const Offset(0, -0.35),
+              end: Offset.zero,
+            ).animate(curved),
+            child: child,
+          ),
+        );
+      },
+    ).then((_) {
+      alreadyClosed = true;
+    });
+
+    await Future<void>.delayed(const Duration(milliseconds: 1400));
+    if (!mounted || alreadyClosed) return;
+    if (navigator.canPop()) {
+      navigator.pop();
+    }
+  }
+
+  Future<void> _submitInlineReview() async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) {
       if (!mounted) return;
@@ -29,91 +132,39 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
       return;
     }
 
-    double currentRating = 5.0;
-    final TextEditingController commentController = TextEditingController();
+    final comment = _reviewController.text.trim();
+    if (comment.isEmpty) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Vui lòng nhập đánh giá')));
+      return;
+    }
 
-    showDialog<void>(
-      context: context,
-      builder: (ctx) {
-        return AlertDialog(
-          title: const Text('Đánh giá sản phẩm'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              RatingBar.builder(
-                initialRating: currentRating,
-                minRating: 1,
-                direction: Axis.horizontal,
-                allowHalfRating: true,
-                itemCount: 5,
-                itemPadding: const EdgeInsets.symmetric(horizontal: 4.0),
-                itemBuilder:
-                    (context, _) => const Icon(Icons.star, color: Colors.amber),
-                onRatingUpdate: (rating) {
-                  currentRating = rating;
-                },
-              ),
-              const SizedBox(height: 15),
-              TextField(
-                controller: commentController,
-                decoration: const InputDecoration(
-                  labelText: 'Nhập bình luận của bạn...',
-                  border: OutlineInputBorder(),
-                ),
-                maxLines: 3,
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(ctx).pop(),
-              child: const Text('Hủy'),
-            ),
-            ElevatedButton(
-              onPressed: () async {
-                final comment = commentController.text.trim();
-                if (comment.isEmpty) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Vui lòng nhập bình luận')),
-                  );
-                  return;
-                }
-
-                final review = ReviewModel(
-                  id: DateTime.now().millisecondsSinceEpoch.toString(),
-                  productId: widget.product.id,
-                  userId: user.uid,
-                  userName: user.email?.split('@')[0] ?? 'Customer',
-                  rating: currentRating,
-                  comment: comment,
-                  createdAt: DateTime.now(),
-                );
-
-                final messenger = ScaffoldMessenger.of(context);
-                final navigator = Navigator.of(ctx);
-
-                try {
-                  await _fs.addReview(review);
-                } catch (_) {
-                  if (!mounted) return;
-                  messenger.showSnackBar(
-                    const SnackBar(content: Text('Không thể gửi đánh giá')),
-                  );
-                  return;
-                }
-
-                if (!mounted) return;
-                navigator.pop();
-                messenger.showSnackBar(
-                  const SnackBar(content: Text('Cảm ơn bạn đã đánh giá!')),
-                );
-              },
-              child: const Text('Gửi đánh giá'),
-            ),
-          ],
-        );
-      },
+    final review = ReviewModel(
+      id: DateTime.now().millisecondsSinceEpoch.toString(),
+      productId: widget.product.id,
+      userId: user.uid,
+      userName: user.email?.split('@')[0] ?? 'Customer',
+      rating: 5.0,
+      comment: comment,
+      createdAt: DateTime.now(),
     );
+
+    try {
+      await _fs.addReview(review);
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Không thể gửi đánh giá')));
+      return;
+    }
+
+    if (!mounted) return;
+    FocusScope.of(context).unfocus();
+    _reviewController.clear();
+    await _showTopSuccessDialog('Cảm ơn bạn đã đánh giá!');
   }
 
   @override
@@ -136,11 +187,22 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
               color: Colors.blue.shade50.withValues(alpha: 0.5),
               child: Hero(
                 tag: widget.product.id,
-                child: Image.network(
-                  widget.product.imageUrl,
-                  fit: BoxFit.contain,
-                  errorBuilder:
-                      (_, __, ___) => const Icon(Icons.error, size: 50),
+                child: AnimatedSlide(
+                  duration: const Duration(milliseconds: 420),
+                  curve: Curves.easeOutCubic,
+                  offset:
+                      _animateHeroImage ? Offset.zero : const Offset(0, 0.06),
+                  child: AnimatedOpacity(
+                    duration: const Duration(milliseconds: 420),
+                    curve: Curves.easeOut,
+                    opacity: _animateHeroImage ? 1 : 0,
+                    child: Image.network(
+                      widget.product.imageUrl,
+                      fit: BoxFit.contain,
+                      errorBuilder:
+                          (_, __, ___) => const Icon(Icons.error, size: 50),
+                    ),
+                  ),
                 ),
               ),
             ),
@@ -160,7 +222,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                         ),
                       ),
                       Text(
-                        '${widget.product.price.toInt()}đ',
+                        formatPrice(widget.product.price),
                         style: const TextStyle(
                           fontSize: 24,
                           fontWeight: FontWeight.bold,
@@ -212,22 +274,39 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                         }).toList(),
                   ),
                   const SizedBox(height: 30),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text(
-                        'Đánh giá sản phẩm',
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                        ),
+                  const Text(
+                    'Đánh giá sản phẩm',
+                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 10),
+                  Text(
+                    'Ghi chú: Vui lòng đăng nhập trước khi gửi đánh giá.',
+                    style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
+                  ),
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: _reviewController,
+                    minLines: 1,
+                    maxLines: 3,
+                    decoration: InputDecoration(
+                      hintText:
+                          'Nhập đánh giá của bạn...'
+                          ' (ví dụ: form đẹp, đi êm, đúng size)',
+                      filled: true,
+                      fillColor: Colors.blue.shade50,
+                      prefixIcon: const Icon(Icons.edit_outlined),
+                      suffixIcon: IconButton(
+                        tooltip: 'Gửi',
+                        icon: const Icon(Icons.send, color: Colors.blue),
+                        onPressed: _submitInlineReview,
                       ),
-                      TextButton.icon(
-                        icon: const Icon(Icons.edit),
-                        label: const Text('Viết đánh giá'),
-                        onPressed: _showAddReviewDialog,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: BorderSide.none,
                       ),
-                    ],
+                    ),
+                    textInputAction: TextInputAction.send,
+                    onSubmitted: (_) => _submitInlineReview(),
                   ),
                   const Divider(),
                   StreamBuilder<List<ReviewModel>>(
@@ -337,11 +416,8 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                 return;
               }
 
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Chức năng giỏ hàng đang bảo trì!'),
-                ),
-              );
+              _cartService.addItem(widget.product, _selectedSize!);
+              _showTopSuccessDialog('Đã thêm vào giỏ hàng');
             },
             child: const Text(
               'THÊM VÀO GIỎ HÀNG',
