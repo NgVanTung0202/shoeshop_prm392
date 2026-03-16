@@ -5,8 +5,8 @@ class ReviewModel {
   final String productId;
   final String userId;
   final String userName;
-  final String comment;
   final double rating;
+  final String comment;
   final DateTime createdAt;
 
   ReviewModel({
@@ -19,7 +19,6 @@ class ReviewModel {
     required this.createdAt,
   });
 
-  // Chuyển object thành Map để lưu lên Firestore
   Map<String, dynamic> toMap() {
     return {
       'productId': productId,
@@ -31,7 +30,6 @@ class ReviewModel {
     };
   }
 
-  // Factory method để tạo object từ dữ liệu Firestore
   factory ReviewModel.fromFirestore(String id, Map<String, dynamic> data) {
     return ReviewModel(
       id: id,
@@ -40,11 +38,12 @@ class ReviewModel {
       userName: data['userName'] ?? 'Customer',
       comment: data['comment'] ?? '',
       rating: (data['rating'] ?? 0).toDouble(),
-      createdAt: data['createdAt'] != null
+      createdAt: data['createdAt'] is Timestamp
           ? (data['createdAt'] as Timestamp).toDate()
           : DateTime.now(),
     );
   }
+
 
   factory ReviewModel.fromMap(String id, Map<String, dynamic> data) =>
       ReviewModel.fromFirestore(id, data);

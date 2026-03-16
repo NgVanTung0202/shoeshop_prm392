@@ -16,7 +16,10 @@ class AdminDashboardScreen extends StatelessWidget {
       drawer: const AdminDrawer(selected: AdminMenuItem.dashboard),
       backgroundColor: const Color(0xFFF5F6FA),
       appBar: AppBar(
-        title: const Text('Báo Cáo Thống Kê', style: TextStyle(color: Colors.white)),
+        title: const Text(
+          'Báo Cáo Thống Kê',
+          style: TextStyle(color: Colors.white),
+        ),
         backgroundColor: Colors.blue,
         iconTheme: const IconThemeData(color: Colors.white),
       ),
@@ -39,10 +42,10 @@ class AdminDashboardScreen extends StatelessWidget {
           // Nhóm đơn hàng theo ngày trong 7 ngày gần nhất
           final today = DateTime.now();
           final startOfToday = DateTime(today.year, today.month, today.day);
-          
+
           final Map<DateTime, double> revenueByDate = {};
           final Map<DateTime, int> ordersByDate = {};
-          
+
           for (int i = 0; i < 7; i++) {
             final date = startOfToday.subtract(Duration(days: i));
             revenueByDate[date] = 0;
@@ -50,29 +53,36 @@ class AdminDashboardScreen extends StatelessWidget {
           }
 
           for (var o in orders) {
-            final orderDate = DateTime(o.createdAt.year, o.createdAt.month, o.createdAt.day);
+            final orderDate = DateTime(
+              o.createdAt.year,
+              o.createdAt.month,
+              o.createdAt.day,
+            );
             if (revenueByDate.containsKey(orderDate)) {
-              revenueByDate[orderDate] = revenueByDate[orderDate]! + o.totalPrice;
+              revenueByDate[orderDate] =
+                  revenueByDate[orderDate]! + o.totalPrice;
               ordersByDate[orderDate] = ordersByDate[orderDate]! + 1;
             }
           }
 
           final sortedDates = revenueByDate.keys.toList()..sort();
           List<BarChartGroupData> barGroups = [];
-          
+
           for (int i = 0; i < sortedDates.length; i++) {
             final date = sortedDates[i];
-            barGroups.add(BarChartGroupData(
-              x: i,
-              barRods: [
-                BarChartRodData(
-                  toY: revenueByDate[date]!,
-                  color: Colors.blue,
-                  width: 16,
-                  borderRadius: BorderRadius.circular(4),
-                )
-              ],
-            ));
+            barGroups.add(
+              BarChartGroupData(
+                x: i,
+                barRods: [
+                  BarChartRodData(
+                    toY: revenueByDate[date]!,
+                    color: Colors.blue,
+                    width: 16,
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                ],
+              ),
+            );
           }
 
           return SingleChildScrollView(
@@ -85,28 +95,34 @@ class AdminDashboardScreen extends StatelessWidget {
                   children: [
                     Expanded(
                       child: _buildStatCard(
-                        "Tổng Đơn Hàng", 
-                        "${orders.length}", 
-                        Icons.shopping_bag, 
-                        Colors.orange
+                        "Tổng Đơn Hàng",
+                        "${orders.length}",
+                        Icons.shopping_bag,
+                        Colors.orange,
                       ),
                     ),
                     const SizedBox(width: 16),
                     Expanded(
                       child: _buildStatCard(
-                        "Tổng Doanh Thu", 
-                        NumberFormat.currency(locale: 'vi', symbol: 'đ').format(totalRevenue),
-                        Icons.monetization_on, 
-                        Colors.green
+                        "Tổng Doanh Thu",
+                        NumberFormat.currency(
+                          locale: 'vi',
+                          symbol: 'đ',
+                        ).format(totalRevenue),
+                        Icons.monetization_on,
+                        Colors.green,
                       ),
                     ),
                   ],
                 ),
-                
+
                 const SizedBox(height: 30),
-                const Text("Doanh thu 7 ngày qua", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                const Text(
+                  "Doanh thu 7 ngày qua",
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
                 const SizedBox(height: 20),
-                
+
                 // Chart
                 SizedBox(
                   height: 300,
@@ -122,15 +138,22 @@ class AdminDashboardScreen extends StatelessWidget {
                                 final date = sortedDates[value.toInt()];
                                 return Padding(
                                   padding: const EdgeInsets.only(top: 8.0),
-                                  child: Text(DateFormat('dd/MM').format(date), style: const TextStyle(fontSize: 10)),
+                                  child: Text(
+                                    DateFormat('dd/MM').format(date),
+                                    style: const TextStyle(fontSize: 10),
+                                  ),
                                 );
                               }
                               return const SizedBox();
                             },
                           ),
                         ),
-                        rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                        topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                        rightTitles: const AxisTitles(
+                          sideTitles: SideTitles(showTitles: false),
+                        ),
+                        topTitles: const AxisTitles(
+                          sideTitles: SideTitles(showTitles: false),
+                        ),
                       ),
                       borderData: FlBorderData(show: false),
                       barGroups: barGroups,
@@ -145,14 +168,25 @@ class AdminDashboardScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildStatCard(String title, String value, IconData icon, Color color) {
+  Widget _buildStatCard(
+    String title,
+    String value,
+    IconData icon,
+    Color color,
+  ) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(15),
-        boxShadow: [BoxShadow(color: Colors.grey.withOpacity(0.1), blurRadius: 10, spreadRadius: 2)],
-        border: Border.all(color: color.withOpacity(0.3)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withValues(alpha: 0.1),
+            blurRadius: 10,
+            spreadRadius: 2,
+          ),
+        ],
+        border: Border.all(color: color.withValues(alpha: 0.3)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -161,7 +195,14 @@ class AdminDashboardScreen extends StatelessWidget {
           const SizedBox(height: 10),
           Text(title, style: const TextStyle(color: Colors.grey, fontSize: 13)),
           const SizedBox(height: 5),
-          Text(value, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: color)),
+          Text(
+            value,
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 18,
+              color: color,
+            ),
+          ),
         ],
       ),
     );
