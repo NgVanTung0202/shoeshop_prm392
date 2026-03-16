@@ -6,9 +6,8 @@ import 'dart:io';
 import '../models/product_model.dart';
 import '../models/category_model.dart';
 import '../services/firestore_service.dart';
-// Đã loại bỏ DBSeeder import
+import '../services/db_seeder.dart';
 import '../widgets/admin_drawer.dart';
-import 'admin_dashboard_screen.dart';
 
 class AdminProductsScreen extends StatefulWidget {
   const AdminProductsScreen({super.key});
@@ -22,7 +21,7 @@ class _AdminProductsScreenState extends State<AdminProductsScreen> {
   File? _selectedImage;
   final TextEditingController _searchController = TextEditingController();
 
-  String _searchQuery = '';
+  String _searchQuery = ''; // Đổi thành biến thường để cập nhật được
   String? _filterCategoryId;
 
   final List<String> shoeSizes = ['36', '37', '38', '39', '40', '41', '42', '43', '44'];
@@ -56,7 +55,7 @@ class _AdminProductsScreenState extends State<AdminProductsScreen> {
     });
   }
 
-  // --- Xác nhận xóa ---
+
   void _confirmDelete(ProductModel product) {
     showDialog(
       context: context,
@@ -104,8 +103,8 @@ class _AdminProductsScreenState extends State<AdminProductsScreen> {
 
     showDialog(
       context: context,
-      builder: (dialogContext) => StatefulBuilder(
-        builder: (dialogContext, setDialogState) => AlertDialog(
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
           title: Text(isEditing ? "Cập nhật sản phẩm" : "Thêm giày mới"),
           content: SizedBox(
             width: double.maxFinite,
@@ -121,7 +120,7 @@ class _AdminProductsScreenState extends State<AdminProductsScreen> {
                         color: const Color(0xFFF0F1F5),
                         borderRadius: BorderRadius.circular(10),
                       ),
-                      child: (!kIsWeb && _selectedImage != null)
+                      child: (_selectedImage != null)
                           ? Image.file(_selectedImage!, fit: BoxFit.cover)
                           : (isEditing && product.imageUrl.isNotEmpty)
                           ? Image.network(product.imageUrl, fit: BoxFit.cover)
@@ -167,17 +166,14 @@ class _AdminProductsScreenState extends State<AdminProductsScreen> {
             ),
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text("Hủy")),
+            TextButton(onPressed: () => Navigator.pop(context), child: const Text("Hủy")),
             ElevatedButton(
               onPressed: isSaving ? null : () async {
-                if (dialogCategoryId == null || nameController.text.trim().isEmpty) {
-                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Vui lòng điền đủ thông tin")));
-                  return;
-                }
+                if (dialogCategoryId == null || nameController.text.isEmpty) return;
                 setDialogState(() => isSaving = true);
                 try {
                   String finalImageUrl = isEditing ? product.imageUrl : '';
-                  if (!kIsWeb && _selectedImage != null) finalImageUrl = await _fs.uploadImage(_selectedImage!);
+                  if (_selectedImage != null) finalImageUrl = await _fs.uploadImage(_selectedImage!);
 
                   Map<String, int> inventory = {for (var s in shoeSizes) s: int.tryParse(sizeControllers[s]!.text) ?? 0};
 
@@ -193,8 +189,7 @@ class _AdminProductsScreenState extends State<AdminProductsScreen> {
                   );
 
                   isEditing ? await _fs.updateProduct(p) : await _fs.addProduct(p);
-                  if (!mounted) return;
-                  Navigator.pop(dialogContext);
+                  if (mounted) Navigator.pop(context);
                 } catch (e) {
                   ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Lỗi: $e")));
                 } finally {
@@ -212,67 +207,272 @@ class _AdminProductsScreenState extends State<AdminProductsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFFF5F6FA),
       appBar: AppBar(
-        centerTitle: true,
         title: const Text("Kho Sản Phẩm", style: TextStyle(fontWeight: FontWeight.w600)),
         actions: [
-          // Đã xóa nút Seed Data
           IconButton(
-            icon: const Icon(Icons.bar_chart),
-            onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => AdminDashboardScreen())),
+            icon: const Icon(Icons.data_object),
+            onPressed: () async {
+              // Sửa DbSeeder thành DBSeeder (viết hoa chữ B)
+              await DBSeeder.seedAll();
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Đã tạo data mẫu!'))
+                );
+              }
+            },
           ),
         ],
       ),
       drawer: const AdminDrawer(selected: AdminMenuItem.products),
       floatingActionButton: FloatingActionButton(
+        backgroundColor: Colors.black,
         onPressed: () => _showProductForm(),
         child: const Icon(Icons.add),
       ),
-      body: StreamBuilder<List<ProductModel>>(
-        stream: _fs.getProducts(),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator());
-          if (snapshot.hasError) return const Center(child: Text("Lỗi tải dữ liệu"));
-
-          List<ProductModel> products = snapshot.data ?? [];
-
-          if (_searchQuery.isNotEmpty) {
-            products = products.where((p) {
-              final name = p.name.toLowerCase();
-              final brand = p.brand.toLowerCase();
-              return name.contains(_searchQuery.toLowerCase()) || brand.contains(_searchQuery.toLowerCase());
-            }).toList();
-          }
-          if (_filterCategoryId != null) {
-            products = products.where((p) => p.categoryId == _filterCategoryId).toList();
-          }
-
-          return ListView.builder(
-            itemCount: products.length,
-            itemBuilder: (context, index) {
-              final p = products[index];
-              return ListTile(
-                leading: ClipRRect(
-                  borderRadius: BorderRadius.circular(8),
-                  child: Image.network(
-                    p.imageUrl,
-                    width: 55, height: 55, fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => const Icon(Icons.image_not_supported),
+      body: Column(
+        children: [
+          // Ô tìm kiếm
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+            child: Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(18),
+                boxShadow: const [
+                  BoxShadow(
+                    color: Color(0x14000000),
+                    blurRadius: 12,
+                    offset: Offset(0, 4),
                   ),
+                ],
+              ),
+              child: TextField(
+                controller: _searchController,
+                decoration: const InputDecoration(
+                  hintText: "Tìm kiếm theo tên hoặc thương hiệu...",
+                  prefixIcon: Icon(Icons.search, color: Colors.grey),
+                  border: InputBorder.none,
+                  contentPadding: EdgeInsets.symmetric(vertical: 14),
                 ),
-                title: Text(p.name, style: const TextStyle(fontWeight: FontWeight.bold)),
-                subtitle: Text("${p.brand} • ${p.price.toInt()}đ"),
-                trailing: Row(
-                  mainAxisSize: MainAxisSize.min,
+                onChanged: (val) {
+                  setState(() => _searchQuery = val.trim().toLowerCase());
+                },
+              ),
+            ),
+          ),
+          // Dải filter danh mục (simple)
+          SizedBox(
+            height: 44,
+            child: StreamBuilder<List<CategoryModel>>(
+              stream: _fs.getCategories(),
+              builder: (context, snapshot) {
+                final cats = snapshot.data ?? [];
+                return ListView(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  scrollDirection: Axis.horizontal,
                   children: [
-                    IconButton(icon: const Icon(Icons.edit), onPressed: () => _showProductForm(product: p)),
-                    IconButton(icon: const Icon(Icons.delete, color: Colors.red), onPressed: () => _confirmDelete(p)),
+                    _buildCategoryFilterChip(label: "Tất cả", id: null),
+                    ...cats.map(
+                      (c) => _buildCategoryFilterChip(label: c.name, id: c.id),
+                    ),
                   ],
-                ),
-              );
-            },
-          );
+                );
+              },
+            ),
+          ),
+          const SizedBox(height: 8),
+          // Danh sách sản phẩm
+          Expanded(
+            child: StreamBuilder<List<ProductModel>>(
+              stream: _fs.getProducts(),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+                if (snapshot.hasError) {
+                  return const Center(child: Text("Lỗi tải dữ liệu"));
+                }
+
+                List<ProductModel> products = snapshot.data ?? [];
+
+                // Lọc theo danh mục
+                if (_filterCategoryId != null) {
+                  products = products
+                      .where((p) => p.categoryId == _filterCategoryId)
+                      .toList();
+                }
+
+                // Tìm kiếm theo tên hoặc thương hiệu
+                if (_searchQuery.isNotEmpty) {
+                  products = products.where((p) {
+                    final name = p.name.toLowerCase();
+                    final brand = p.brand.toLowerCase();
+                    return name.contains(_searchQuery) ||
+                        brand.contains(_searchQuery);
+                  }).toList();
+                }
+
+                if (products.isEmpty) {
+                  return const Center(child: Text("Không có sản phẩm"));
+                }
+
+                return ListView.builder(
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+                  itemCount: products.length,
+                  itemBuilder: (context, index) {
+                    final p = products[index];
+                    final totalStock = p.sizesStock.values.fold<int>(
+                      0,
+                      (prev, e) => prev + e,
+                    );
+
+                    return Container(
+                      margin: const EdgeInsets.only(bottom: 16),
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(22),
+                        boxShadow: const [
+                          BoxShadow(
+                            color: Color(0x12000000),
+                            blurRadius: 10,
+                            offset: Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: Row(
+                        children: [
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(18),
+                            child: Image.network(
+                              p.imageUrl,
+                              width: 72,
+                              height: 72,
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, __, ___) =>
+                                  Container(
+                                    width: 72,
+                                    height: 72,
+                                    color: const Color(0xFFF0F1F5),
+                                    child: const Icon(
+                                      Icons.image_not_supported_outlined,
+                                      color: Colors.grey,
+                                    ),
+                                  ),
+                            ),
+                          ),
+                          const SizedBox(width: 14),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  p.name,
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 16,
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  p.brand,
+                                  style: const TextStyle(
+                                    color: Colors.blue,
+                                    fontSize: 13,
+                                    decoration: TextDecoration.underline,
+                                  ),
+                                ),
+                                const SizedBox(height: 6),
+                                Row(
+                                  children: [
+                                    Text(
+                                      "Kho: $totalStock",
+                                      style: const TextStyle(
+                                        color: Colors.grey,
+                                        fontSize: 13,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 10),
+                                    const Text(
+                                      "|",
+                                      style: TextStyle(
+                                        color: Colors.grey,
+                                        fontSize: 13,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 10),
+                                    Text(
+                                      "${p.price.toStringAsFixed(0)}đ",
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.w600,
+                                        fontSize: 13,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          IconButton(
+                            icon: const Icon(
+                              Icons.edit_outlined,
+                              color: Colors.grey,
+                              size: 22,
+                            ),
+                            onPressed: () => _showProductForm(product: p),
+                          ),
+                          IconButton(
+                            icon: const Icon(
+                              Icons.delete_outline,
+                              color: Colors.grey,
+                              size: 22,
+                            ),
+                            onPressed: () => _confirmDelete(p),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Chip filter danh mục giống ảnh
+  Widget _buildCategoryFilterChip({required String label, String? id}) {
+    final bool isSelected = _filterCategoryId == id;
+
+    return Padding(
+      padding: const EdgeInsets.only(right: 10),
+      child: ChoiceChip(
+        label: Text(label),
+        selected: isSelected,
+        onSelected: (_) {
+          setState(() {
+            _filterCategoryId = id;
+          });
         },
+        selectedColor: Colors.blue,
+        labelStyle: TextStyle(
+          color: isSelected ? Colors.white : Colors.black87,
+          fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+        ),
+        backgroundColor: const Color(0xFFE9EDF7),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(999),
+          side: BorderSide(
+            color: isSelected ? Colors.blue : Colors.transparent,
+          ),
+        ),
       ),
     );
   }
