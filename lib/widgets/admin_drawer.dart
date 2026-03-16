@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../screens/admin_home_screen.dart';
+import '../screens/admin_dashboard_screen.dart';
 import '../screens/admin_products_screen.dart';
 import '../screens/admin_category_screen.dart';
 
@@ -60,7 +60,9 @@ class AdminDrawer extends StatelessWidget {
                 if (selected != AdminMenuItem.dashboard) {
                   Navigator.pushReplacement(
                     context,
-                    MaterialPageRoute(builder: (_) => const AdminHomeScreen()),
+                    MaterialPageRoute(
+                      builder: (_) => AdminDashboardScreen(),
+                    ),
                   );
                 }
               },

@@ -3,6 +3,7 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:intl/intl.dart';
 import '../models/order_model.dart';
 import '../services/firestore_service.dart';
+import '../widgets/admin_drawer.dart';
 
 class AdminDashboardScreen extends StatelessWidget {
   AdminDashboardScreen({super.key});
@@ -12,6 +13,8 @@ class AdminDashboardScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      drawer: const AdminDrawer(selected: AdminMenuItem.dashboard),
+      backgroundColor: const Color(0xFFF5F6FA),
       appBar: AppBar(
         title: const Text('Báo Cáo Thống Kê', style: TextStyle(color: Colors.white)),
         backgroundColor: Colors.blue,
