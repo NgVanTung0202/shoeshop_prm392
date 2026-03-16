@@ -1,71 +1,145 @@
 import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
-import '../models/product_model.dart';
+
 import '../models/category_model.dart';
+import '../models/product_model.dart';
+import '../models/review_model.dart';
+import '../models/order_model.dart';
 
 class FirestoreService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
   final FirebaseStorage _storage = FirebaseStorage.instance;
 
-  // --- HÀM XỬ LÝ ẢNH (Dùng cho UC16) ---
+  /// ================= USERS =================
 
-  /// Upload ảnh lên Storage và trả về URL để lưu vào Firestore
-  Future<String> uploadImage(File imageFile) async {
-    try {
-      // Tạo tên file duy nhất bằng timestamp
-      String fileName = DateTime.now().millisecondsSinceEpoch.toString();
-      Reference ref = _storage.ref().child('products').child('$fileName.jpg');
-
-      // Upload file
-      UploadTask uploadTask = ref.putFile(imageFile);
-      TaskSnapshot snapshot = await uploadTask;
-
-      // Lấy URL tải về
-      return await snapshot.ref.getDownloadURL();
-    } catch (e) {
-      print("Lỗi upload ảnh: $e");
-      return "";
-    }
+  Stream<QuerySnapshot> getUsers() {
+    return _db.collection("users").snapshots();
   }
 
-  /// Xóa ảnh trên Storage khi xóa sản phẩm (để tiết kiệm tài nguyên)
-  Future<void> deleteImage(String imageUrl) async {
-    try {
-      if (imageUrl.isNotEmpty && imageUrl.contains('firebase')) {
-        await _storage.refFromURL(imageUrl).delete();
-      }
-    } catch (e) {
-      print("Lỗi xóa ảnh: $e");
-    }
+  Future<void> deleteUser(String uid) async {
+    await _db.collection("users").doc(uid).delete();
   }
 
-  // --- QUẢN LÝ CATEGORY (UC17) ---
+  Future<void> updateUserRole(String uid, String role) async {
+    await _db.collection("users").doc(uid).update({"role": role});
+  }
+
+  Future<void> updateProfile({
+    required String uid,
+    required String name,
+    required String phone,
+  }) async {
+    await _db.collection("users").doc(uid).update({
+      "name": name,
+      "phone": phone,
+    });
+  }
+
+  /// ================= CATEGORY =================
+
   Stream<List<CategoryModel>> getCategories() {
-    return _db.collection('categories').snapshots().map((snap) =>
-        snap.docs.map((doc) => CategoryModel.fromDoc(doc.id, doc.data())).toList());
+    return _db.collection("categories").snapshots().map((snapshot) {
+      return snapshot.docs.map((doc) {
+        final data = doc.data();
+        return CategoryModel(
+          id: doc.id,
+          name: data["name"] ?? "",
+          imageUrl: data["imageUrl"] ?? "",
+        );
+      }).toList();
+    });
   }
 
-  Future<void> addCategory(String name) => _db.collection('categories').add({'name': name});
+  Future<void> addCategory(String name, {String imageUrl = ""}) async {
+    await _db.collection("categories").add({
+      "name": name,
+      "imageUrl": imageUrl,
+    });
+  }
 
-  Future<void> deleteCategory(String id) => _db.collection('categories').doc(id).delete();
+  Future<void> updateCategory(String id, String name, {String imageUrl = ""}) async {
+    await _db.collection("categories").doc(id).update({
+      "name": name,
+      "imageUrl": imageUrl,
+    });
+  }
 
-  // --- QUẢN LÝ PRODUCT (UC15 & UC16) ---
+  Future<void> deleteCategory(String id) async {
+    await _db.collection("categories").doc(id).delete();
+  }
+
+  /// ================= PRODUCT =================
+
   Stream<List<ProductModel>> getProducts() {
-    return _db.collection('products').snapshots().map((snap) =>
-        snap.docs.map((doc) => ProductModel.fromFirestore(doc.id, doc.data())).toList());
+    return _db.collection("products").snapshots().map((snapshot) {
+      return snapshot.docs.map((doc) {
+        final data = doc.data();
+        return ProductModel.fromFirestore(doc.id, data);
+      }).toList();
+    });
   }
 
-  // Thêm sản phẩm mới (Dữ liệu p.sizesStock đã được xử lý từ UI)
-  Future<void> addProduct(ProductModel p) => _db.collection('products').add(p.toMap());
+  Future<void> addProduct(ProductModel product) async {
+    await _db.collection("products").add(product.toMap());
+  }
 
-  // Cập nhật sản phẩm
-  Future<void> updateProduct(ProductModel p) =>
-      _db.collection('products').doc(p.id).update(p.toMap());
+  Future<void> updateProduct(ProductModel product) async {
+    await _db.collection("products").doc(product.id).update(product.toMap());
+  }
 
-  // Xóa sản phẩm và xóa luôn ảnh trên Storage
-  Future<void> deleteProduct(String id, String? imageUrl) async {
-    if (imageUrl != null) await deleteImage(imageUrl);
-    return _db.collection('products').doc(id).delete();
+  Future<void> deleteProduct(String id, String imageUrl) async {
+    await _db.collection("products").doc(id).delete();
+    if (imageUrl.isNotEmpty) {
+      try {
+        await _storage.refFromURL(imageUrl).delete();
+      } catch (_) {}
+    }
+  }
+
+  /// ================= IMAGE UPLOAD =================
+
+  Future<String> uploadImage(File file) async {
+    final fileName = DateTime.now().millisecondsSinceEpoch.toString();
+    final ref = _storage.ref().child("images/$fileName.jpg");
+    await ref.putFile(file);
+    return await ref.getDownloadURL();
+  }
+
+  /// ================= REVIEWS =================
+  /// Lưu ý: Sử dụng bộ sưu tập 'reviews' riêng biệt để dễ quản lý thống kê
+
+  // Thêm review mới
+  Future<void> addReview(ReviewModel review) async {
+    // Sử dụng doc(id).set thay vì add() để tránh tạo trùng hoặc ID rác nếu đã có ID
+    await _db.collection('reviews').doc(review.id).set(review.toMap());
+  }
+
+  // Lấy danh sách review của một sản phẩm (Sắp xếp theo thời gian mới nhất)
+  Stream<List<ReviewModel>> getProductReviews(String productId) {
+    return _db.collection('reviews')
+        .where('productId', isEqualTo: productId)
+        .snapshots()
+        .map((snap) {
+      final list = snap.docs
+          .map((doc) => ReviewModel.fromFirestore(doc.id, doc.data()))
+          .toList();
+
+      // Sắp xếp thủ công tại Client để không cần tạo Index trên Firebase Console
+      list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      return list;
+    });
+  }
+
+  /// ================= ORDERS =================
+  /// (Dùng cho Dashboard và quản lý đơn hàng)
+
+  Stream<List<OrderModel>> getAllOrders() {
+    return _db.collection('orders')
+        .orderBy('createdAt', descending: true)
+        .snapshots()
+        .map((snap) => snap.docs
+        .map((doc) => OrderModel.fromFirestore(doc.id, doc.data()))
+        .toList());
   }
 }
