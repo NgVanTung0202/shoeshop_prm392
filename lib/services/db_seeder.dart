@@ -45,8 +45,9 @@ class DBSeeder {
         'price': 3200000.0,
         'categoryId': catRunningRef.id,
         'brand': 'Adidas',
+        // Note: some brand CDNs may return 404 later; use a stable placeholder endpoint for seeded demo data.
         'imageUrl':
-            'https://assets.adidas.com/images/h_840,f_auto,q_auto,fl_lossy,c_fill,g_auto/0f4327463f6449179017af3200057f97_9366/Giay_UltraBoost_Light_trang_HQ6351_01_standard.jpg',
+            'https://picsum.photos/seed/shoeshop_adidas_ultraboost/1024/1024',
         'description': 'Su ket hop hoan hao giua thoi trang va hieu nang.',
         'sizes_stock': {'38': 2, '39': 10, '40': 15, '41': 3},
       },
@@ -57,7 +58,7 @@ class DBSeeder {
         'categoryId': catSandalRef.id,
         'brand': 'Bitis',
         'imageUrl':
-            'https://bitis.com.vn/cdn/shop/products/3_84967394-3758-4503-912b-7b089c25f190_1024x1024.jpg',
+            'https://picsum.photos/seed/shoeshop_bitis_sandal/1024/1024',
         'description': 'Sandal ben bi cho mua he nang dong.',
         'sizes_stock': {'36': 10, '37': 10, '38': 10, '39': 10},
       },
