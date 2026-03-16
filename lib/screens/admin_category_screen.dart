@@ -222,6 +222,7 @@ class _AdminCategoryScreenState extends State<AdminCategoryScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       drawer: const AdminDrawer(selected: AdminMenuItem.categories),
+      backgroundColor: Colors.white,
       appBar: AppBar(
         title: const Text("Quản lý danh mục"),
         centerTitle: true,
@@ -229,19 +230,33 @@ class _AdminCategoryScreenState extends State<AdminCategoryScreen> {
       body: Column(
         children: [
           Padding(
-            padding: const EdgeInsets.all(16),
-            child: TextField(
-              controller: _searchController,
-              decoration: const InputDecoration(
-                hintText: "Tìm danh mục...",
-                prefixIcon: Icon(Icons.search),
-                border: OutlineInputBorder(),
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+            child: Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(18),
+                boxShadow: const [
+                  BoxShadow(
+                    color: Color(0x14000000),
+                    blurRadius: 12,
+                    offset: Offset(0, 4),
+                  ),
+                ],
               ),
-              onChanged: (value) {
-                setState(() {
-                  _searchQuery = value.toLowerCase();
-                });
-              },
+              child: TextField(
+                controller: _searchController,
+                decoration: const InputDecoration(
+                  hintText: "Tìm kiếm danh mục...",
+                  prefixIcon: Icon(Icons.search, color: Colors.grey),
+                  border: InputBorder.none,
+                  contentPadding: EdgeInsets.symmetric(vertical: 14),
+                ),
+                onChanged: (value) {
+                  setState(() {
+                    _searchQuery = value.toLowerCase();
+                  });
+                },
+              ),
             ),
           ),
           Expanded(
@@ -276,32 +291,86 @@ class _AdminCategoryScreenState extends State<AdminCategoryScreen> {
                 }
 
                 return ListView.builder(
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
                   itemCount: categories.length,
                   itemBuilder: (context, index) {
                     final cat = categories[index];
 
-                    return ListTile(
-                      leading: cat.imageUrl.isNotEmpty
-                          ? Image.network(
-                              cat.imageUrl,
-                              width: 50,
-                              height: 50,
-                              fit: BoxFit.cover,
-                            )
-                          : const Icon(Icons.category),
-                      title: Text(cat.name),
-                      trailing: Row(
-                        mainAxisSize: MainAxisSize.min,
+                    return Container(
+                      margin: const EdgeInsets.only(bottom: 16),
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(22),
+                        boxShadow: const [
+                          BoxShadow(
+                            color: Color(0x12000000),
+                            blurRadius: 10,
+                            offset: Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: Row(
                         children: [
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(18),
+                            child: cat.imageUrl.isNotEmpty
+                                ? Image.network(
+                                    cat.imageUrl,
+                                    width: 56,
+                                    height: 56,
+                                    fit: BoxFit.cover,
+                                  )
+                                : Container(
+                                    width: 56,
+                                    height: 56,
+                                    color: const Color(0xFFF0F1F5),
+                                    child: const Icon(
+                                      Icons.category_outlined,
+                                      color: Colors.grey,
+                                    ),
+                                  ),
+                          ),
+                          const SizedBox(width: 14),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  cat.name,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 16,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                const Text(
+                                  "Danh mục sản phẩm",
+                                  style: TextStyle(
+                                    color: Colors.grey,
+                                    fontSize: 13,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 8),
                           IconButton(
-                            icon: const Icon(Icons.edit),
+                            icon: const Icon(
+                              Icons.edit_outlined,
+                              color: Colors.grey,
+                              size: 22,
+                            ),
                             onPressed: () =>
                                 _showCategoryDialog(category: cat),
                           ),
                           IconButton(
-                            icon: const Icon(Icons.delete),
-                            onPressed: () =>
-                                _confirmDelete(cat),
+                            icon: const Icon(
+                              Icons.delete_outline,
+                              color: Colors.grey,
+                              size: 22,
+                            ),
+                            onPressed: () => _confirmDelete(cat),
                           ),
                         ],
                       ),
