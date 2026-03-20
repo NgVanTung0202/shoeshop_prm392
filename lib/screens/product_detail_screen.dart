@@ -185,10 +185,15 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                       return ChoiceChip(
                         label: Text(e.key),
                         selected: isSelected,
-                        onSelected: hasStock
-                            ? (val) => setState(
-                                () => _selectedSize = val ? e.key : null)
-                            : null,
+                        onSelected: (val) {
+                          if (!hasStock) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Sản phẩm size này đã hết hàng, từ chối thêm vào giỏ hàng!'))
+                            );
+                            return;
+                          }
+                          setState(() => _selectedSize = val ? e.key : null);
+                        },
                         selectedColor: Colors.blue,
                         labelStyle: TextStyle(
                             color: isSelected
@@ -288,13 +293,14 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
           padding: const EdgeInsets.all(16),
           child: ElevatedButton(
             style: ElevatedButton.styleFrom(
-              backgroundColor:
-                  _selectedSize != null ? Colors.blue : Colors.grey,
+              backgroundColor: widget.product.getTotalStock() > 0 
+                  ? (_selectedSize != null ? Colors.blue : Colors.grey) 
+                  : Colors.grey,
               padding: const EdgeInsets.symmetric(vertical: 16),
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12)),
             ),
-            onPressed: () {
+            onPressed: widget.product.getTotalStock() <= 0 ? null : () {
               if (_selectedSize == null) {
                 ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(content: Text('Vui lòng chọn size')));
@@ -303,8 +309,9 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
               _cartService.addItem(widget.product, _selectedSize!);
               _showTopSuccessDialog('Đã thêm vào giỏ hàng');
             },
-            child: const Text('THÊM VÀO GIỎ HÀNG',
-                style: TextStyle(
+            child: Text(
+                widget.product.getTotalStock() > 0 ? 'THÊM VÀO GIỎ HÀNG' : 'HẾT HÀNG',
+                style: const TextStyle(
                     color: Colors.white, fontWeight: FontWeight.bold)),
           ),
         ),

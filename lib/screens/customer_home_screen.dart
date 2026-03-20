@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/product_model.dart';
@@ -33,10 +34,15 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
   String? _displayName;
   String? _selectedCategoryId;
   String? _selectedCategoryName;
+  String? _selectedBrand;
   String _searchQuery = '';
   int _selectedNavIndex = 0;
   String _selectedSort = 'phobien';
   final Set<String> _favoriteProductIds = <String>{};
+
+  int _currentBannerIndex = 0;
+  final PageController _pageController = PageController();
+  Timer? _bannerTimer;
 
   User? get currentUser => FirebaseAuth.instance.currentUser;
 
@@ -75,6 +81,8 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
 
   @override
   void dispose() {
+    _bannerTimer?.cancel();
+    _pageController.dispose();
     _searchController.dispose();
     super.dispose();
   }
@@ -295,7 +303,9 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
         child: Column(
           children: [
             _buildSearchBar(),
-            _buildCategoryList(),
+            _buildBannerSlider(),
+            const SizedBox(height: 10),
+            _buildBrandList(), // Fix: Add Brand UI
             const SizedBox(height: 10),
             _buildSortDropdown(),
             const SizedBox(height: 10),
@@ -438,6 +448,25 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
   void initState() {
     super.initState();
     _loadUserInfo();
+    _startBannerTimer();
+  }
+
+  void _startBannerTimer() {
+    _bannerTimer = Timer.periodic(const Duration(seconds: 3), (timer) {
+      if (_pageController.hasClients) {
+        int nextPage = _currentBannerIndex + 1;
+        if (nextPage >= 5) { // We have 5 banners (banner1 -> banner5)
+          nextPage = 0;
+          _pageController.jumpToPage(nextPage);
+        } else {
+          _pageController.animateToPage(
+            nextPage,
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeInOut,
+          );
+        }
+      }
+    });
   }
 
   Future<void> _loadUserInfo() async {
@@ -524,44 +553,57 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
     );
   }
 
-  Widget _buildCategoryList() {
+  Widget _buildBannerSlider() {
+    return SizedBox(
+      height: 150,
+      width: double.infinity,
+      child: PageView.builder(
+        controller: _pageController,
+        onPageChanged: (index) {
+          _currentBannerIndex = index;
+        },
+        itemCount: 5,
+        itemBuilder: (context, index) {
+          // Because assets/banner/ contains banner1.png through banner5.png
+          final bannerNumber = index + 1;
+          return Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(15),
+              child: Image.asset(
+                'assets/banner/banner$bannerNumber.png',
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) {
+                  return Container(
+                    color: Colors.blue.shade100,
+                    alignment: Alignment.center,
+                    child: const Icon(Icons.image, size: 50, color: Colors.blue),
+                  );
+                },
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildBrandList() {
     return SizedBox(
       height: 45,
-      child: StreamBuilder<List<CategoryModel>>(
-        stream: _fs.getCategories(),
+      child: FutureBuilder<List<String>>(
+        future: _fs.getAllBrands(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(
-              child: CircularProgressIndicator(strokeWidth: 2),
-            );
+            return const Center(child: CircularProgressIndicator(strokeWidth: 2));
           }
-
-          final List<CategoryModel> categories =
-              snapshot.data ?? <CategoryModel>[];
-
-          // Lọc trùng danh mục theo tên (không phân biệt hoa thường)
-          final seenNames = <String>{};
-          final uniqueCategories = <CategoryModel>[];
-          for (final category in categories) {
-            final name = category.name.trim();
-            if (name.isEmpty) continue;
-            final key = name.toLowerCase();
-            if (seenNames.add(key)) {
-              uniqueCategories.add(category);
-            }
-          }
-
+          final brands = snapshot.data ?? [];
           return ListView(
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.symmetric(horizontal: 16),
             children: [
-              _buildCategoryChip(label: 'All', value: null),
-              ...uniqueCategories.map(
-                (category) => _buildCategoryChip(
-                  label: category.name,
-                  value: category.id,
-                ),
-              ),
+              _buildBrandChip(label: 'All Brands', value: null),
+              ...brands.map((b) => _buildBrandChip(label: b, value: b)),
             ],
           );
         },
@@ -569,15 +611,14 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
     );
   }
 
-  Widget _buildCategoryChip({required String label, String? value}) {
-    final bool isSelected = _selectedCategoryId == value;
-    final chipColor = _chipColorForLabel(label);
+  Widget _buildBrandChip({required String label, String? value}) {
+    final bool isSelected = _selectedBrand == value;
+    final chipColor = Colors.orange; // Để phân biệt với màu xanh của Category
 
     return GestureDetector(
       onTap: () {
         setState(() {
-          _selectedCategoryId = value;
-          _selectedCategoryName = label == 'All' ? null : label;
+          _selectedBrand = value;
         });
       },
       child: Container(
@@ -601,6 +642,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
       ),
     );
   }
+
 
   Color _chipColorForLabel(String label) {
     if (label.toLowerCase() == 'all') {
@@ -714,60 +756,23 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
 
           final List<ProductModel> loadedProducts = snapshot.data ?? <ProductModel>[];
           final List<ProductModel> products = List<ProductModel>.from(loadedProducts);
-          
-          final presetProducts = ShoeData.allShoes.map((shoe) {
-            final disc = shoe.id.hashCode.abs() % 5 == 0 ? 15 + (shoe.id.hashCode.abs() % 4) * 5 : 0;
-            return ProductModel(
-              id: 'preset_${shoe.id}',
-              name: shoe.name,
-              brand: shoe.brand,
-              price: 1500000.0 + (shoe.id.hashCode.abs() % 1000000),
-              categoryId: 'preset_cat', // Just placeholder
-              imageUrl: ProductModel.getLocalImage(shoe.name, shoe.brand, 'preset_${shoe.id}'),
-              description: 'Sản phẩm ${shoe.name} chính hãng từ ${shoe.brand}.',
-              sizesStock: {'39': 10, '40': 15, '41': 20},
-              discountPercent: disc,
-              soldCount: shoe.id.hashCode.abs() % 300,
-              rating: 4.0 + (shoe.id.hashCode.abs() % 10) / 10,
-              reviewCount: (shoe.id.hashCode.abs() % 100) + 5,
-            );
-          }).toList();
-          
-          products.addAll(presetProducts);
 
           final List<ProductModel> filteredProducts =
               products.where((product) {
-                bool matchCategory = true;
-                if (_selectedCategoryId != null) {
-                  bool categoryIdMatch = product.categoryId == _selectedCategoryId;
-                  bool nameOrBrandMatch = false;
-                  if (_selectedCategoryName != null) {
-                    final catNameLower = _selectedCategoryName!.toLowerCase();
-                    nameOrBrandMatch = product.brand.toLowerCase().contains(catNameLower) ||
-                                       product.name.toLowerCase().contains(catNameLower);
-                  }
-                  
-                  // Nếu là nhầm lẫn data (VD: Sandal Bitis nhưng ID là Nike)
-                  // Ta ưu tiên: hoặc đúng categoryId (chuẩn data), hoặc category name khớp với brand/name.
-                  // Để sửa triệt để lỗi Bitis hiển thị trong Nike, nếu có _selectedCategoryName khớp với các Hãng lớn, ta ép buộc brand phải khớp.
-                  final isMajorBrand = ['nike', 'adidas', 'puma', 'vans', 'converse', 'boot'].contains(_selectedCategoryName?.toLowerCase());
-                  if (isMajorBrand) {
-                     matchCategory = nameOrBrandMatch;
-                  } else {
-                     matchCategory = categoryIdMatch || nameOrBrandMatch;
-                  }
+                // 1. Lọc theo Category ID (KHÔNG dùng name hoặc brand nữa)
+                bool matchCategory = _selectedCategoryId == null || product.categoryId == _selectedCategoryId;
+
+                // 2. Lọc theo Hãng (Brand)
+                bool matchBrand = _selectedBrand == null || product.brand.toUpperCase() == _selectedBrand?.toUpperCase();
+
+                // 3. Lọc theo Search Query
+                bool matchSearch = true;
+                if (_searchQuery.isNotEmpty) {
+                  final String name = product.name.toLowerCase();
+                  matchSearch = name.contains(_searchQuery);
                 }
 
-                if (_searchQuery.isEmpty) {
-                  return matchCategory;
-                }
-
-                final String name = product.name.toLowerCase();
-                final String brand = product.brand.toLowerCase();
-                final bool matchSearch =
-                    name.contains(_searchQuery) || brand.contains(_searchQuery);
-
-                return matchCategory && matchSearch;
+                return matchCategory && matchBrand && matchSearch;
               }).toList();
 
           if (_selectedSort == 'giathap') {
@@ -921,12 +926,13 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
                           InkWell(
                             borderRadius: BorderRadius.circular(999),
                             onTap: () {
-                              if (product.sizesStock.isEmpty) {
+                              if (product.getTotalStock() <= 0) {
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   const SnackBar(
-                                    content: Text('Sản phẩm đã hết hàng'),
+                                    content: Text('Sản phẩm đã hết hàng, chuyển đến trang chi tiết...'),
                                   ),
                                 );
+                                _openProductDetail(product);
                                 return;
                               }
 

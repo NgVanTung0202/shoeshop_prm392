@@ -231,11 +231,38 @@ class _CartScreenState extends State<CartScreen> {
                                       ),
                                     ),
                                     const SizedBox(height: 4),
-                                    Text(
-                                      'Size ${item.size}',
-                                      style: TextStyle(
-                                        color: Colors.grey.shade700,
-                                        fontSize: 12,
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 0),
+                                      decoration: BoxDecoration(
+                                        border: Border.all(color: Colors.grey.shade300),
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: DropdownButton<String>(
+                                        value: item.size,
+                                        isDense: true,
+                                        underline: const SizedBox(),
+                                        icon: const Icon(Icons.arrow_drop_down, size: 18),
+                                        items: item.product.sizesStock.entries
+                                            .where((e) => e.value > 0)
+                                            .map((e) => DropdownMenuItem(
+                                                  value: e.key,
+                                                  child: Text('Size ${e.key}', style: const TextStyle(fontSize: 13)),
+                                                ))
+                                            .toList(),
+                                        onChanged: (newSize) {
+                                          if (newSize != null && newSize != item.size) {
+                                            // Lấy list keys đã chọn để phục hồi nếu nó đổi key
+                                            bool wasSelected = _selectedKeys.contains(key);
+                                            setState(() {
+                                              if (wasSelected) _selectedKeys.remove(key);
+                                              _cartService.updateSize(item.product.id, item.size, newSize);
+                                              // CartService đã cập nhật / gộp item nên ta cần render lại list key tùy item mới
+                                              if (wasSelected) {
+                                                _selectedKeys.add(_cartService.itemKey(CartItem(product: item.product, size: newSize)));
+                                              }
+                                            });
+                                          }
+                                        },
                                       ),
                                     ),
                                     const SizedBox(height: 8),
