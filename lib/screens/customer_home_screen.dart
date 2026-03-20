@@ -1,10 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
- update-code
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/product_model.dart';
-
 import 'package:flutter/material.dart';
- main
 import '../models/category_model.dart';
 import '../models/product_model.dart';
 import '../services/auth_service.dart';
@@ -15,6 +12,9 @@ import 'cart_screen.dart';
 import 'change_password_screen.dart';
 import 'product_detail_screen.dart';
 import 'profile_screen.dart';
+import 'brand_shoes_screen.dart';
+import '../data/shoe_data.dart';
+import 'order_history_screen.dart';
 
 class CustomerHomeScreen extends StatefulWidget {
   const CustomerHomeScreen({super.key});
@@ -29,40 +29,13 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
   final CartService _cartService = CartService();
   final TextEditingController _searchController = TextEditingController();
 
- update-code
-  String selectedCategoryId = "All";
   String? _avatarUrl;
   String? _displayName;
-
-  User? get currentUser => FirebaseAuth.instance.currentUser;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadUserInfo();
-  }
-
-  Future<void> _loadUserInfo() async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) return;
-    final doc = await FirebaseFirestore.instance
-        .collection("users")
-        .doc(user.uid)
-        .get();
-    final data = doc.data();
-    if (data != null && mounted) {
-      setState(() {
-        _avatarUrl = data["avatarUrl"];
-        _displayName = data["name"];
-      });
-    }
-  }
-
-  Future<void> _handleLogout() async {
-
   String? _selectedCategoryId;
+  String? _selectedCategoryName;
   String _searchQuery = '';
   int _selectedNavIndex = 0;
+  String _selectedSort = 'phobien';
   final Set<String> _favoriteProductIds = <String>{};
 
   User? get currentUser => FirebaseAuth.instance.currentUser;
@@ -78,7 +51,6 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
     }
 
     final label = count > 99 ? '99+' : count.toString();
- main
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
@@ -325,6 +297,8 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
             _buildSearchBar(),
             _buildCategoryList(),
             const SizedBox(height: 10),
+            _buildSortDropdown(),
+            const SizedBox(height: 10),
             _buildProductGrid(),
           ],
         ),
@@ -333,7 +307,6 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
     );
   }
 
- update-code
   Drawer _buildDrawer() {
 
     return Drawer(
@@ -372,9 +345,36 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
           ),
 
           ListTile(
+            leading: const Icon(Icons.category, color: Colors.blue),
+            title: const Text("Bộ sưu tập hãng (Brands)"),
+            onTap: () {
+              Navigator.pop(context); // Đóng drawer
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => BrandShoesScreen(
+                    onShoeSelected: (shoeName) {
+                      setState(() {
+                        _searchController.text = shoeName;
+                        _searchQuery = shoeName.toLowerCase();
+                      });
+                    },
+                  ),
+                ),
+              );
+            },
+          ),
+
+          ListTile(
             leading: const Icon(Icons.history, color: Colors.blue),
             title: const Text("Lịch sử đơn hàng"),
-            onTap: () {},
+            onTap: () {
+              Navigator.pop(context);
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const OrderHistoryScreen()),
+              );
+            },
           ),
 
           ListTile(
@@ -434,13 +434,32 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
     );
   }
 
-  Widget _buildCartIcon() {
+  @override
+  void initState() {
+    super.initState();
+    _loadUserInfo();
+  }
+
+  Future<void> _loadUserInfo() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+    final doc = await FirebaseFirestore.instance
+        .collection("users")
+        .doc(user.uid)
+        .get();
+    final data = doc.data();
+    if (data != null && mounted) {
+      setState(() {
+        _avatarUrl = data["avatarUrl"];
+        _displayName = data["name"];
+      });
+    }
+  }
 
   // Nút yêu thích trên AppBar với badge số lượng
   Widget _buildFavoriteIcon() {
     final hasFavorites = _favoriteProductIds.isNotEmpty;
     final favoriteCount = _favoriteProductIds.length;
- main
 
     return Stack(
       clipBehavior: Clip.none,
@@ -558,6 +577,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
       onTap: () {
         setState(() {
           _selectedCategoryId = value;
+          _selectedCategoryName = label == 'All' ? null : label;
         });
       },
       child: Container(
@@ -600,6 +620,85 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
     return palette[label.hashCode.abs() % palette.length];
   }
 
+  Widget _buildSortDropdown() {
+    final Map<String, String> sortOptions = {
+      'phobien': 'Phổ biến',
+      'giathap': 'Giá thấp đến cao',
+      'giacao': 'Giá cao đến thấp',
+      'danhgia': 'Nhiều đánh giá tốt',
+      'banchay': 'Bán chạy',
+    };
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          const Text(
+            'Tất cả sản phẩm',
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+          ),
+          InkWell(
+            onTap: () {
+              showModalBottomSheet(
+                context: context,
+                shape: const RoundedRectangleBorder(
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+                ),
+                builder: (context) {
+                  return Container(
+                    padding: const EdgeInsets.symmetric(vertical: 20),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Padding(
+                          padding: EdgeInsets.only(bottom: 10),
+                          child: Text(
+                            'Sắp xếp theo',
+                            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                        ...sortOptions.entries.map((entry) {
+                          final isSelected = entry.key == _selectedSort;
+                          return ListTile(
+                            title: Text(
+                              entry.value,
+                              style: TextStyle(
+                                color: isSelected ? Colors.blue : Colors.black,
+                                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                              ),
+                            ),
+                            trailing: isSelected ? const Icon(Icons.check, color: Colors.blue) : null,
+                            onTap: () {
+                              setState(() {
+                                _selectedSort = entry.key;
+                              });
+                              Navigator.pop(context);
+                            },
+                          );
+                        }),
+                      ],
+                    ),
+                  );
+                },
+              );
+            },
+            child: Row(
+              children: [
+                const Icon(Icons.sort, size: 20, color: Colors.blue),
+                const SizedBox(width: 4),
+                Text(
+                  sortOptions[_selectedSort] ?? 'Sắp xếp',
+                  style: const TextStyle(fontWeight: FontWeight.w600, color: Colors.blue),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildProductGrid() {
     return Expanded(
       child: StreamBuilder<List<ProductModel>>(
@@ -613,13 +712,51 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
             return const Center(child: Text('Không thể tải sản phẩm'));
           }
 
-          final List<ProductModel> products = snapshot.data ?? <ProductModel>[];
+          final List<ProductModel> loadedProducts = snapshot.data ?? <ProductModel>[];
+          final List<ProductModel> products = List<ProductModel>.from(loadedProducts);
+          
+          final presetProducts = ShoeData.allShoes.map((shoe) {
+            final disc = shoe.id.hashCode.abs() % 5 == 0 ? 15 + (shoe.id.hashCode.abs() % 4) * 5 : 0;
+            return ProductModel(
+              id: 'preset_${shoe.id}',
+              name: shoe.name,
+              brand: shoe.brand,
+              price: 1500000.0 + (shoe.id.hashCode.abs() % 1000000),
+              categoryId: 'preset_cat', // Just placeholder
+              imageUrl: ProductModel.getLocalImage(shoe.name, shoe.brand, 'preset_${shoe.id}'),
+              description: 'Sản phẩm ${shoe.name} chính hãng từ ${shoe.brand}.',
+              sizesStock: {'39': 10, '40': 15, '41': 20},
+              discountPercent: disc,
+              soldCount: shoe.id.hashCode.abs() % 300,
+              rating: 4.0 + (shoe.id.hashCode.abs() % 10) / 10,
+              reviewCount: (shoe.id.hashCode.abs() % 100) + 5,
+            );
+          }).toList();
+          
+          products.addAll(presetProducts);
+
           final List<ProductModel> filteredProducts =
               products.where((product) {
-                final bool matchCategory =
-                    _selectedCategoryId == null
-                        ? true
-                        : product.categoryId == _selectedCategoryId;
+                bool matchCategory = true;
+                if (_selectedCategoryId != null) {
+                  bool categoryIdMatch = product.categoryId == _selectedCategoryId;
+                  bool nameOrBrandMatch = false;
+                  if (_selectedCategoryName != null) {
+                    final catNameLower = _selectedCategoryName!.toLowerCase();
+                    nameOrBrandMatch = product.brand.toLowerCase().contains(catNameLower) ||
+                                       product.name.toLowerCase().contains(catNameLower);
+                  }
+                  
+                  // Nếu là nhầm lẫn data (VD: Sandal Bitis nhưng ID là Nike)
+                  // Ta ưu tiên: hoặc đúng categoryId (chuẩn data), hoặc category name khớp với brand/name.
+                  // Để sửa triệt để lỗi Bitis hiển thị trong Nike, nếu có _selectedCategoryName khớp với các Hãng lớn, ta ép buộc brand phải khớp.
+                  final isMajorBrand = ['nike', 'adidas', 'puma', 'vans', 'converse', 'boot'].contains(_selectedCategoryName?.toLowerCase());
+                  if (isMajorBrand) {
+                     matchCategory = nameOrBrandMatch;
+                  } else {
+                     matchCategory = categoryIdMatch || nameOrBrandMatch;
+                  }
+                }
 
                 if (_searchQuery.isEmpty) {
                   return matchCategory;
@@ -632,6 +769,18 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
 
                 return matchCategory && matchSearch;
               }).toList();
+
+          if (_selectedSort == 'giathap') {
+            filteredProducts.sort((a, b) => a.price.compareTo(b.price));
+          } else if (_selectedSort == 'giacao') {
+            filteredProducts.sort((a, b) => b.price.compareTo(a.price));
+          } else if (_selectedSort == 'danhgia') {
+            filteredProducts.sort((a, b) => b.rating.compareTo(a.rating));
+          } else if (_selectedSort == 'banchay') {
+            filteredProducts.sort((a, b) => b.soldCount.compareTo(a.soldCount));
+          } else if (_selectedSort == 'phobien') {
+            // Default, maybe just id sorting or default fetch order
+          }
 
           if (filteredProducts.isEmpty) {
             if (_searchQuery.isNotEmpty) {
@@ -700,15 +849,23 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
                     ),
                     child: Hero(
                       tag: product.id,
-                      child: Image.network(
-                        product.imageUrl,
-                        fit: BoxFit.contain,
-                        errorBuilder:
-                            (_, __, ___) => const Icon(
-                                  Icons.image_not_supported_outlined,
-                                  color: Colors.grey,
-                                ),
-                      ),
+                      child: product.imageUrl.startsWith('http')
+                          ? Image.network(
+                              product.imageUrl,
+                              fit: BoxFit.contain,
+                              errorBuilder: (_, __, ___) => const Icon(
+                                Icons.image_not_supported_outlined,
+                                color: Colors.grey,
+                              ),
+                            )
+                          : Image.asset(
+                              product.imageUrl,
+                              fit: BoxFit.contain,
+                              errorBuilder: (_, __, ___) => const Icon(
+                                Icons.image_not_supported_outlined,
+                                color: Colors.grey,
+                              ),
+                            ),
                     ),
                   ),
                 ),
@@ -737,13 +894,28 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
                       Row(
                         children: [
                           Expanded(
-                            child: Text(
-                              formatPrice(product.price),
-                              style: const TextStyle(
-                                color: Colors.black,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 14,
-                              ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                if (product.discountPercent > 0)
+                                  Text(
+                                    formatPrice(product.price * 100 / (100 - product.discountPercent)),
+                                    style: TextStyle(
+                                      color: Colors.grey.shade500,
+                                      fontWeight: FontWeight.w500,
+                                      fontSize: 11,
+                                      decoration: TextDecoration.lineThrough,
+                                    ),
+                                  ),
+                                Text(
+                                  formatPrice(product.price),
+                                  style: const TextStyle(
+                                    color: Colors.red,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 14,
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                           InkWell(
@@ -784,11 +956,42 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
                           ),
                         ],
                       ),
+                      const SizedBox(height: 4),
+                      Row(
+                        children: [
+                          const Icon(Icons.star, color: Colors.amber, size: 14),
+                          const SizedBox(width: 3),
+                          Text('${product.rating.toStringAsFixed(1)}', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                          Text(' (${product.reviewCount})', style: const TextStyle(fontSize: 11, color: Colors.grey)),
+                          const Spacer(),
+                          Text('Đã bán: ${product.soldCount}', style: const TextStyle(fontSize: 11, color: Colors.grey)),
+                        ],
+                      ),
                     ],
                   ),
                 ),
               ],
             ),
+            if (product.discountPercent > 0)
+              Positioned(
+                top: 10,
+                left: 10,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: Colors.red,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    '-${product.discountPercent}%',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ),
             Positioned(
               top: 10,
               right: 10,
@@ -935,71 +1138,4 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
     );
   }
 
-  Widget _buildDrawer() {
-    return Drawer(
-      child: Column(
-        children: [
-          UserAccountsDrawerHeader(
-            decoration: const BoxDecoration(color: Colors.blue),
-            currentAccountPicture: const CircleAvatar(
-              backgroundColor: Colors.white,
-              child: Icon(Icons.person, size: 40, color: Colors.blue),
-            ),
-            accountName: Text(
-              currentUser?.email?.split('@')[0] ?? 'Khách hàng',
-              style: const TextStyle(fontWeight: FontWeight.bold),
-            ),
-            accountEmail: Text(currentUser?.email ?? 'Chưa đăng nhập'),
-          ),
-          ListTile(
-            leading: const Icon(Icons.home_outlined, color: Colors.blue),
-            title: const Text('Trang chủ'),
-            onTap: () => Navigator.pop(context),
-          ),
-          ListTile(
-            leading: const Icon(Icons.history, color: Colors.blue),
-            title: const Text('Lịch sử đơn hàng'),
-            onTap: () {},
-          ),
-          ListTile(
-            leading: const Icon(Icons.person, color: Colors.blue),
-            title: const Text('Thông tin cá nhân'),
-            onTap: () {
-              Navigator.pop(context);
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const ProfileScreen()),
-              );
-            },
-          ),
-          ListTile(
-            leading: const Icon(Icons.lock, color: Colors.orange),
-            title: const Text('Đổi mật khẩu'),
-            onTap: () {
-              Navigator.pop(context);
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const ChangePasswordScreen()),
-              );
-            },
-          ),
-          const Divider(),
-          currentUser == null
-              ? ListTile(
-                  leading: const Icon(Icons.login, color: Colors.green),
-                  title: const Text('Đăng nhập ngay'),
-                  onTap: () => Navigator.pushNamed(context, '/login'),
-                )
-              : ListTile(
-                  leading: const Icon(Icons.logout, color: Colors.redAccent),
-                  title: const Text('Đăng xuất'),
-                  onTap: () {
-                    Navigator.pop(context);
-                    _handleLogout();
-                  },
-                ),
-        ],
-      ),
-    );
-  }
 }

@@ -61,7 +61,9 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(12),
-                boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 10)],
+                boxShadow: const [
+                  BoxShadow(color: Colors.black12, blurRadius: 10)
+                ],
                 border: Border.all(color: Colors.green.withOpacity(0.3)),
               ),
               child: Row(
@@ -69,7 +71,8 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                 children: [
                   const Icon(Icons.check_circle, color: Colors.green),
                   const SizedBox(width: 10),
-                  Text(message, style: const TextStyle(fontWeight: FontWeight.bold)),
+                  Text(message,
+                      style: const TextStyle(fontWeight: FontWeight.bold)),
                 ],
               ),
             ),
@@ -85,7 +88,8 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
   Future<void> _submitReview() async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Vui lòng đăng nhập để đánh giá')));
+      ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Vui lòng đăng nhập để đánh giá')));
       return;
     }
 
@@ -109,7 +113,8 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
       FocusScope.of(context).unfocus();
       _showTopSuccessDialog('Cảm ơn bạn đã đánh giá!');
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Lỗi khi gửi đánh giá')));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('Lỗi khi gửi đánh giá')));
     }
   }
 
@@ -118,7 +123,8 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        title: Text(widget.product.name, style: const TextStyle(color: Colors.black)),
+        title: Text(widget.product.name,
+            style: const TextStyle(color: Colors.black)),
         backgroundColor: Colors.white,
         elevation: 0,
         iconTheme: const IconThemeData(color: Colors.black),
@@ -136,7 +142,11 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                 child: AnimatedOpacity(
                   duration: const Duration(milliseconds: 500),
                   opacity: _animateHeroImage ? 1 : 0,
-                  child: Image.network(widget.product.imageUrl, fit: BoxFit.contain),
+                  child: widget.product.imageUrl.startsWith('http')
+                      ? Image.network(widget.product.imageUrl,
+                          fit: BoxFit.contain)
+                      : Image.asset(widget.product.imageUrl,
+                          fit: BoxFit.contain),
                 ),
               ),
             ),
@@ -150,14 +160,22 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(widget.product.brand.toUpperCase(), style: const TextStyle(color: Colors.grey, fontWeight: FontWeight.bold)),
-                      Text(formatPrice(widget.product.price), style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.blue)),
+                      Text(widget.product.brand.toUpperCase(),
+                          style: const TextStyle(
+                              color: Colors.grey, fontWeight: FontWeight.bold)),
+                      Text(formatPrice(widget.product.price),
+                          style: const TextStyle(
+                              fontSize: 24,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.blue)),
                     ],
                   ),
                   const SizedBox(height: 20),
 
                   // Chọn Size
-                  const Text('Chọn Size:', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                  const Text('Chọn Size:',
+                      style:
+                          TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 10),
                   Wrap(
                     spacing: 10,
@@ -167,16 +185,38 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                       return ChoiceChip(
                         label: Text(e.key),
                         selected: isSelected,
-                        onSelected: hasStock ? (val) => setState(() => _selectedSize = val ? e.key : null) : null,
+                        onSelected: hasStock
+                            ? (val) => setState(
+                                () => _selectedSize = val ? e.key : null)
+                            : null,
                         selectedColor: Colors.blue,
-                        labelStyle: TextStyle(color: isSelected ? Colors.white : (hasStock ? Colors.black : Colors.grey)),
+                        labelStyle: TextStyle(
+                            color: isSelected
+                                ? Colors.white
+                                : (hasStock ? Colors.black : Colors.grey)),
                       );
                     }).toList(),
                   ),
 
+                  const SizedBox(height: 24),
+                  const Text(
+                    'Mô tả sản phẩm',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    widget.product.description.trim().isNotEmpty
+                        ? widget.product.description
+                        : 'Sản phẩm chưa có mô tả.',
+                    style: const TextStyle(
+                        fontSize: 15, height: 1.5, color: Colors.black87),
+                  ),
+
                   const SizedBox(height: 30),
                   const Divider(),
-                  const Text('Đánh giá sản phẩm', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                  const Text('Đánh giá sản phẩm',
+                      style:
+                          TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 10),
 
                   // Ô nhập đánh giá Inline (Gộp HEAD & main)
@@ -184,7 +224,8 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                     initialRating: 5,
                     minRating: 1,
                     itemSize: 25,
-                    itemBuilder: (context, _) => const Icon(Icons.star, color: Colors.amber),
+                    itemBuilder: (context, _) =>
+                        const Icon(Icons.star, color: Colors.amber),
                     onRatingUpdate: (rating) => _currentRating = rating,
                   ),
                   const SizedBox(height: 10),
@@ -194,8 +235,12 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                       hintText: 'Nhập bình luận...',
                       filled: true,
                       fillColor: Colors.grey.shade100,
-                      suffixIcon: IconButton(icon: const Icon(Icons.send, color: Colors.blue), onPressed: _submitReview),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                      suffixIcon: IconButton(
+                          icon: const Icon(Icons.send, color: Colors.blue),
+                          onPressed: _submitReview),
+                      border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide.none),
                     ),
                   ),
 
@@ -204,7 +249,8 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                   StreamBuilder<List<ReviewModel>>(
                     stream: _fs.getProductReviews(widget.product.id),
                     builder: (context, snapshot) {
-                      if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
+                      if (!snapshot.hasData)
+                        return const Center(child: CircularProgressIndicator());
                       final reviews = snapshot.data!;
                       return ListView.builder(
                         shrinkWrap: true,
@@ -215,12 +261,15 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                           return Card(
                             margin: const EdgeInsets.only(bottom: 10),
                             child: ListTile(
-                              title: Text(rev.userName, style: const TextStyle(fontWeight: FontWeight.bold)),
+                              title: Text(rev.userName,
+                                  style: const TextStyle(
+                                      fontWeight: FontWeight.bold)),
                               subtitle: Text(rev.comment),
                               trailing: RatingBarIndicator(
                                 rating: rev.rating,
                                 itemSize: 12,
-                                itemBuilder: (ctx, _) => const Icon(Icons.star, color: Colors.amber),
+                                itemBuilder: (ctx, _) =>
+                                    const Icon(Icons.star, color: Colors.amber),
                               ),
                             ),
                           );
@@ -239,19 +288,24 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
           padding: const EdgeInsets.all(16),
           child: ElevatedButton(
             style: ElevatedButton.styleFrom(
-              backgroundColor: _selectedSize != null ? Colors.blue : Colors.grey,
+              backgroundColor:
+                  _selectedSize != null ? Colors.blue : Colors.grey,
               padding: const EdgeInsets.symmetric(vertical: 16),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12)),
             ),
             onPressed: () {
               if (_selectedSize == null) {
-                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Vui lòng chọn size')));
+                ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Vui lòng chọn size')));
                 return;
               }
               _cartService.addItem(widget.product, _selectedSize!);
               _showTopSuccessDialog('Đã thêm vào giỏ hàng');
             },
-            child: const Text('THÊM VÀO GIỎ HÀNG', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            child: const Text('THÊM VÀO GIỎ HÀNG',
+                style: TextStyle(
+                    color: Colors.white, fontWeight: FontWeight.bold)),
           ),
         ),
       ),
