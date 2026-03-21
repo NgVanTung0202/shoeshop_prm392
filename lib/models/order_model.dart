@@ -4,7 +4,7 @@ class OrderModel {
   String id;
   String userId;
   double totalPrice;
-  String status; // pending, shipping, delivered
+  String status; // Chờ xác nhận, Đang giao, Hoàn thành, Đã hủy
   String address;
   String phone;
   String paymentMethod; // COD, Online
@@ -28,7 +28,7 @@ class OrderModel {
       id: id,
       userId: data['userId'] ?? '',
       totalPrice: (data['totalPrice'] ?? 0).toDouble(),
-      status: data['status'] ?? 'pending',
+      status: data['status'] ?? 'Chờ xác nhận',
       address: data['address'] ?? '',
       phone: data['phone'] ?? '',
       paymentMethod: data['paymentMethod'] ?? 'COD',
@@ -38,13 +38,13 @@ class OrderModel {
   }
 
   Map<String, dynamic> toMap() => {
-    'userId': userId,
-    'totalPrice': totalPrice,
-    'status': status,
-    'address': address,
-    'phone': phone,
-    'paymentMethod': paymentMethod,
-    'paymentStatus': paymentStatus,
-    'createdAt': FieldValue.serverTimestamp(),
-  };
+        'userId': userId,
+        'totalPrice': totalPrice,
+        'status': status,
+        'address': address,
+        'phone': phone,
+        'paymentMethod': paymentMethod,
+        'paymentStatus': paymentStatus,
+        'createdAt': FieldValue.serverTimestamp(),
+      };
 }

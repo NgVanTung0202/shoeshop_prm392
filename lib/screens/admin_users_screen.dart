@@ -43,7 +43,7 @@ class AdminUsersScreen extends StatelessWidget {
                         keyboard: TextInputType.phone),
                     const SizedBox(height: 12),
                     DropdownButtonFormField<String>(
-                      initialValue: selectedRole,
+                      value: selectedRole,
                       decoration: const InputDecoration(
                         labelText: "Vai trò",
                         border: OutlineInputBorder(),
@@ -63,10 +63,10 @@ class AdminUsersScreen extends StatelessWidget {
                     Container(
                       padding: const EdgeInsets.all(10),
                       decoration: BoxDecoration(
-                        color: Colors.blue.withValues(alpha: 0.08),
+                        color: Colors.blue.withOpacity(0.08),
                         borderRadius: BorderRadius.circular(8),
                         border: Border.all(
-                            color: Colors.blue.withValues(alpha: 0.3)),
+                            color: Colors.blue.withOpacity(0.3)),
                       ),
                       child: const Row(
                         children: [
@@ -193,7 +193,7 @@ class AdminUsersScreen extends StatelessWidget {
                         keyboard: TextInputType.phone),
                     const SizedBox(height: 12),
                     DropdownButtonFormField<String>(
-                      initialValue: selectedRole,
+                      value: selectedRole,
                       decoration: const InputDecoration(
                         labelText: "Vai trò",
                         border: OutlineInputBorder(),
@@ -380,7 +380,7 @@ class AdminUsersScreen extends StatelessWidget {
                 elevation: 1,
                 child: ListTile(
                   leading: CircleAvatar(
-                    backgroundColor: _roleColor(role).withValues(alpha: 0.15),
+                    backgroundColor: _roleColor(role).withOpacity(0.15),
                     child: Text(
                       (name.isNotEmpty ? name[0] : email[0])
                           .toUpperCase(),
@@ -402,10 +402,10 @@ class AdminUsersScreen extends StatelessWidget {
                         padding: const EdgeInsets.symmetric(
                             horizontal: 8, vertical: 3),
                         decoration: BoxDecoration(
-                          color: _roleColor(role).withValues(alpha: 0.12),
+                          color: _roleColor(role).withOpacity(0.12),
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(
-                              color: _roleColor(role).withValues(alpha: 0.4)),
+                              color: _roleColor(role).withOpacity(0.4)),
                         ),
                         child: Text(
                           _roleLabel(role),

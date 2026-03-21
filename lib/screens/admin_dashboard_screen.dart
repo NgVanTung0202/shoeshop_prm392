@@ -148,10 +148,10 @@ class AdminDashboardScreen extends StatelessWidget {
                             },
                           ),
                         ),
-                        rightTitles: const AxisTitles(
+                        rightTitles: AxisTitles(
                           sideTitles: SideTitles(showTitles: false),
                         ),
-                        topTitles: const AxisTitles(
+                        topTitles: AxisTitles(
                           sideTitles: SideTitles(showTitles: false),
                         ),
                       ),
@@ -181,12 +181,12 @@ class AdminDashboardScreen extends StatelessWidget {
         borderRadius: BorderRadius.circular(15),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withValues(alpha: 0.1),
+            color: Colors.grey.withOpacity(0.1),
             blurRadius: 10,
             spreadRadius: 2,
           ),
         ],
-        border: Border.all(color: color.withValues(alpha: 0.3)),
+        border: Border.all(color: color.withOpacity(0.3)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

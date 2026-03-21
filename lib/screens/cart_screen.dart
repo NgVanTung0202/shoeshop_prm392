@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../services/cart_service.dart';
+import 'checkout_screen.dart';
 import '../utils/format_utils.dart';
 
 class CartScreen extends StatefulWidget {
@@ -113,21 +114,23 @@ class _CartScreenState extends State<CartScreen> {
       return;
     }
 
-    final itemsToRemove =
+    final selectedItems =
         _cartService.items
             .where((item) => _selectedKeys.contains(_cartService.itemKey(item)))
             .toList();
 
-    for (final item in itemsToRemove) {
-      _cartService.removeItem(item.product.id, item.size);
+    if (selectedItems.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Vui lòng chọn sản phẩm để thanh toán')),
+      );
+      return;
     }
 
-    setState(() {
-      _selectedKeys.clear();
-    });
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Thanh toán thành công (giả lập)')),
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => CheckoutScreen(selectedItems: selectedItems),
+      ),
     );
   }
 
@@ -186,23 +189,33 @@ class _CartScreenState extends State<CartScreen> {
                               ),
                               ClipRRect(
                                 borderRadius: BorderRadius.circular(10),
-                                child: Image.network(
-                                  item.product.imageUrl,
-                                  width: 64,
-                                  height: 64,
-                                  fit: BoxFit.cover,
-                                  errorBuilder:
-                                      (_, __, ___) => Container(
+                                child: item.product.imageUrl.startsWith('http')
+                                    ? Image.network(
+                                        item.product.imageUrl,
                                         width: 64,
                                         height: 64,
-                                        color: Colors.blue.shade50,
-                                        alignment: Alignment.center,
-                                        child: const Icon(
-                                          Icons.image_not_supported_outlined,
-                                          color: Colors.grey,
+                                        fit: BoxFit.cover,
+                                        errorBuilder: (_, __, ___) => Container(
+                                          width: 64,
+                                          height: 64,
+                                          color: Colors.blue.shade50,
+                                          alignment: Alignment.center,
+                                          child: const Icon(Icons.image_not_supported_outlined, color: Colors.grey),
+                                        ),
+                                      )
+                                    : Image.asset(
+                                        item.product.imageUrl,
+                                        width: 64,
+                                        height: 64,
+                                        fit: BoxFit.cover,
+                                        errorBuilder: (_, __, ___) => Container(
+                                          width: 64,
+                                          height: 64,
+                                          color: Colors.blue.shade50,
+                                          alignment: Alignment.center,
+                                          child: const Icon(Icons.image_not_supported_outlined, color: Colors.grey),
                                         ),
                                       ),
-                                ),
                               ),
                               const SizedBox(width: 12),
                               Expanded(

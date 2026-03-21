@@ -6,6 +6,7 @@ import 'firebase_options.dart';
 import 'screens/login_screen.dart';
 import 'screens/admin_home_screen.dart';
 import 'screens/customer_home_screen.dart';
+import 'screens/admin_orders_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -42,7 +43,7 @@ class MyApp extends StatelessWidget {
         '/login': (context) => const LoginScreen(),
         '/admin': (context) => const AdminHomeScreen(),
         '/home': (context) => const CustomerHomeScreen(),
-         // '/staff': (context) => const StaffHomeScreen(),
+        '/admin_orders': (context) => const AdminOrdersScreen(),
       },
     );
   }

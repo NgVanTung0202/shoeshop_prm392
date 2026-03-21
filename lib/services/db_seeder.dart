@@ -13,9 +13,12 @@ class DBSeeder {
 
     try {
       // 1. Tạo Categories với ID cố định (HEAD style) để tránh tạo trùng
-      final DocumentReference<Map<String, dynamic>> catSneakerRef = db.collection('categories').doc('seed_sneakers');
-      final DocumentReference<Map<String, dynamic>> catRunningRef = db.collection('categories').doc('seed_running');
-      final DocumentReference<Map<String, dynamic>> catSandalRef = db.collection('categories').doc('seed_sandal');
+      final DocumentReference<Map<String, dynamic>> catSneakerRef =
+          db.collection('categories').doc('seed_sneakers');
+      final DocumentReference<Map<String, dynamic>> catRunningRef =
+          db.collection('categories').doc('seed_running');
+      final DocumentReference<Map<String, dynamic>> catSandalRef =
+          db.collection('categories').doc('seed_sandal');
 
       await catSneakerRef.set({
         'name': 'Sneakers',
@@ -40,7 +43,8 @@ class DBSeeder {
           'price': 2500000.0,
           'categoryId': catSneakerRef.id,
           'brand': 'Nike',
-          'imageUrl': 'https://static.nike.com/a/images/t_PDP_1280_v1/f_auto,q_auto:eco/99486149-0345-41ef-8b89-4670081d5f2a/air-force-1-07-shoes-Wr0Q1H.png',
+          'imageUrl':
+              'https://static.nike.com/a/images/t_PDP_1280_v1/f_auto,q_auto:eco/99486149-0345-41ef-8b89-4670081d5f2a/air-force-1-07-shoes-Wr0Q1H.png',
           'description': 'Mẫu giày chạy bộ cao cấp nhất của Nike năm 2026.',
           'sizesStock': {'39': 5, '40': 5, '41': 6, '42': 4},
         },
@@ -50,7 +54,8 @@ class DBSeeder {
           'price': 3200000.0,
           'categoryId': catRunningRef.id,
           'brand': 'Adidas',
-          'imageUrl': 'https://assets.adidas.com/images/h_840,f_auto,q_auto,fl_lossy,c_fill,g_auto/0f4327463f6449179017af3200057f97_9366/Giay_UltraBoost_Light_trang_HQ6351_01_standard.jpg',
+          'imageUrl':
+              'https://assets.adidas.com/images/h_840,f_auto,q_auto,fl_lossy,c_fill,g_auto/0f4327463f6449179017af3200057f97_9366/Giay_UltraBoost_Light_trang_HQ6351_01_standard.jpg',
           'description': 'Sự kết hợp hoàn hảo giữa thời trang và hiệu năng.',
           'sizesStock': {'38': 2, '39': 10, '40': 15, '41': 3},
         },
@@ -60,7 +65,8 @@ class DBSeeder {
           'price': 450000.0,
           'categoryId': catSandalRef.id,
           'brand': 'Bitis',
-          'imageUrl': 'https://picsum.photos/seed/shoeshop_bitis_sandal/1024/1024',
+          'imageUrl':
+              'https://picsum.photos/seed/shoeshop_bitis_sandal/1024/1024',
           'description': 'Sandal bền bỉ cho mùa hè năng động.',
           'sizesStock': {'36': 10, '37': 10, '38': 10, '39': 10},
         },
@@ -89,7 +95,7 @@ class DBSeeder {
           'userId': 'seed_customer',
           'items': [],
           'totalPrice': 1200000.0,
-          'status': 'Completed',
+          'status': 'Hoàn thành',
           'shippingAddress': 'Hà Nội',
           'createdAt': Timestamp.fromDate(today),
         },
@@ -98,27 +104,30 @@ class DBSeeder {
           'userId': 'seed_customer',
           'items': [],
           'totalPrice': 2500000.0,
-          'status': 'Completed',
+          'status': 'Hoàn thành',
           'shippingAddress': 'HCM',
-          'createdAt': Timestamp.fromDate(today.subtract(const Duration(days: 1))),
+          'createdAt':
+              Timestamp.fromDate(today.subtract(const Duration(days: 1))),
         },
         {
           'id': 'ORD-003',
           'userId': 'seed_customer',
           'items': [],
           'totalPrice': 450000.0,
-          'status': 'Completed',
+          'status': 'Hoàn thành',
           'shippingAddress': 'Đà Nẵng',
-          'createdAt': Timestamp.fromDate(today.subtract(const Duration(days: 2))),
+          'createdAt':
+              Timestamp.fromDate(today.subtract(const Duration(days: 2))),
         },
         {
           'id': 'ORD-004',
           'userId': 'seed_customer',
           'items': [],
           'totalPrice': 3200000.0,
-          'status': 'Completed',
+          'status': 'Hoàn thành',
           'shippingAddress': 'Hải Phòng',
-          'createdAt': Timestamp.fromDate(today.subtract(const Duration(days: 5))),
+          'createdAt':
+              Timestamp.fromDate(today.subtract(const Duration(days: 5))),
         },
       ];
 
@@ -129,7 +138,6 @@ class DBSeeder {
 
       debugPrint('✅ Orders seeded (Chart data ready)');
       debugPrint('--- 🏁 HOÀN TẤT SEED DỮ LIỆU ---');
-
     } catch (e) {
       debugPrint('❌ Lỗi khi seed dữ liệu: $e');
     }
