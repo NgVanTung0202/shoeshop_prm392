@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../models/product_model.dart';
 import '../services/cart_service.dart';
 import 'checkout_screen.dart';
 import '../utils/format_utils.dart';
@@ -204,7 +205,8 @@ class _CartScreenState extends State<CartScreen> {
                                         ),
                                       )
                                     : Image.asset(
-                                        item.product.imageUrl,
+                                        ProductModel.normalizeLocalAssetPath(
+                                            item.product.imageUrl),
                                         width: 64,
                                         height: 64,
                                         fit: BoxFit.cover,

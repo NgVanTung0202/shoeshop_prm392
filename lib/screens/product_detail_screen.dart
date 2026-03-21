@@ -145,8 +145,11 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                   child: widget.product.imageUrl.startsWith('http')
                       ? Image.network(widget.product.imageUrl,
                           fit: BoxFit.contain)
-                      : Image.asset(widget.product.imageUrl,
-                          fit: BoxFit.contain),
+                      : Image.asset(
+                          ProductModel.normalizeLocalAssetPath(
+                              widget.product.imageUrl),
+                          fit: BoxFit.contain,
+                        ),
                 ),
               ),
             ),

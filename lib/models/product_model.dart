@@ -82,39 +82,48 @@ class ProductModel {
     return sizesStock.values.fold(0, (sum, quantity) => sum + quantity);
   }
 
+  /// Flutter Web ghép URL `assets/` + key; nếu key bắt đầu bằng `assets/` sẽ thành `assets/assets/...` (404).
+  /// Ảnh nằm trong thư mục [app_images/], không dùng tên thư mục `assets` ở root.
+  static String normalizeLocalAssetPath(String path) {
+    if (path.startsWith('assets/')) {
+      return path.replaceFirst('assets/', 'app_images/');
+    }
+    return path;
+  }
+
   static String getLocalImage(String name, String brand, String id) {
     String brandStr = brand.toLowerCase();
     String nameStr = name.toLowerCase();
     
     if (brandStr.contains('nike') || nameStr.contains('nike')) {
-      final arr = ['assets/nike/jodan.png', 'assets/nike/jodanvang.png', 'assets/nike/nike2.png', 'assets/nike/niketrang.png', 'assets/nike/resize.jpg', 'assets/nike/unnamed.png'];
+      final arr = ['app_images/nike/jodan.png', 'app_images/nike/jodanvang.png', 'app_images/nike/nike2.png', 'app_images/nike/niketrang.png', 'app_images/nike/resize.jpg', 'app_images/nike/unnamed.png'];
       return arr[id.hashCode.abs() % arr.length];
     } else if (brandStr.contains('adidas') || nameStr.contains('adidas')) {
-      final arr = ['assets/adidas/adidas.png', 'assets/adidas/adidas2.png', 'assets/adidas/adidasboot.png', 'assets/adidas/images.jpg'];
+      final arr = ['app_images/adidas/adidas.png', 'app_images/adidas/adidas2.png', 'app_images/adidas/adidasboot.png', 'app_images/adidas/images.jpg'];
       return arr[id.hashCode.abs() % arr.length];
     } else if (brandStr.contains('puma') || nameStr.contains('puma')) {
-      final arr = ['assets/puma/puma.png', 'assets/puma/puma2.jpg', 'assets/puma/pumado.png', 'assets/puma/pumado2.png'];
+      final arr = ['app_images/puma/puma.png', 'app_images/puma/puma2.jpg', 'app_images/puma/pumado.png', 'app_images/puma/pumado2.png'];
       return arr[id.hashCode.abs() % arr.length];
     } else if (brandStr.contains('boot') || nameStr.contains('boot')) {
-      final arr = ['assets/boots/boot.png', 'assets/boots/boot2.png'];
+      final arr = ['app_images/boots/boot.png', 'app_images/boots/boot2.png'];
       return arr[id.hashCode.abs() % arr.length];
     } else {
       final arr = [
-        'assets/snakers/convert.png', 
-        'assets/snakers/convert2.png',
-        'assets/nike/jodan.png', 
-        'assets/nike/jodanvang.png', 
-        'assets/nike/nike2.png', 
-        'assets/nike/niketrang.png', 
-        'assets/nike/unnamed.png',
-        'assets/adidas/adidas.png', 
-        'assets/adidas/adidas2.png', 
-        'assets/adidas/adidasboot.png',
-        'assets/puma/puma.png', 
-        'assets/puma/pumado.png', 
-        'assets/puma/pumado2.png',
-        'assets/boots/boot.png', 
-        'assets/boots/boot2.png'
+        'app_images/snakers/convert.png', 
+        'app_images/snakers/convert2.png',
+        'app_images/nike/jodan.png', 
+        'app_images/nike/jodanvang.png', 
+        'app_images/nike/nike2.png', 
+        'app_images/nike/niketrang.png', 
+        'app_images/nike/unnamed.png',
+        'app_images/adidas/adidas.png', 
+        'app_images/adidas/adidas2.png', 
+        'app_images/adidas/adidasboot.png',
+        'app_images/puma/puma.png', 
+        'app_images/puma/pumado.png', 
+        'app_images/puma/pumado2.png',
+        'app_images/boots/boot.png', 
+        'app_images/boots/boot2.png'
       ];
       return arr[id.hashCode.abs() % arr.length];
     }
