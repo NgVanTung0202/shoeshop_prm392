@@ -698,7 +698,13 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
                       tag: product.id,
                       child: product.imageUrl.startsWith('http')
                           ? Image.network(product.imageUrl, fit: BoxFit.contain, errorBuilder: (_, __, ___) => const Icon(Icons.image_not_supported_outlined))
-                          : Image.asset(product.imageUrl, fit: BoxFit.contain, errorBuilder: (_, __, ___) => const Icon(Icons.image_not_supported_outlined)),
+                          : Image.asset(
+                              ProductModel.normalizeLocalAssetPath(
+                                  product.imageUrl),
+                              fit: BoxFit.contain,
+                              errorBuilder: (_, __, ___) => const Icon(
+                                  Icons.image_not_supported_outlined),
+                            ),
                     ),
                   ),
                 ),

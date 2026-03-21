@@ -187,14 +187,16 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                       children: items.map((doc) {
                         final itemData = doc.data() as Map<String, dynamic>;
                         String imageUrl = itemData['imageUrl']?.toString() ?? '';
-                        
-                        // Khôi phục cứng lại Local Image nếu data bị hỏng lưu từ trước
-                        if (imageUrl.isEmpty || (!imageUrl.startsWith('http') && !imageUrl.startsWith('assets/'))) {
-                           imageUrl = ProductModel.getLocalImage(
-                              itemData['productName']?.toString() ?? '', 
-                              '', 
-                              itemData['productId']?.toString() ?? ''
-                           );
+
+                        if (imageUrl.isEmpty) {
+                          imageUrl = ProductModel.getLocalImage(
+                            itemData['productName']?.toString() ?? '',
+                            '',
+                            itemData['productId']?.toString() ?? '',
+                          );
+                        } else if (!imageUrl.startsWith('http')) {
+                          imageUrl =
+                              ProductModel.normalizeLocalAssetPath(imageUrl);
                         }
 
                         return ListTile(
