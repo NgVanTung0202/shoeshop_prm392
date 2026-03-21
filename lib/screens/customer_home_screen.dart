@@ -1,10 +1,7 @@
-import 'package:firebase_auth/firebase_auth.dart';
- update-code
 import 'package:cloud_firestore/cloud_firestore.dart';
-import '../models/product_model.dart';
-
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
- main
+
 import '../models/category_model.dart';
 import '../models/product_model.dart';
 import '../services/auth_service.dart';
@@ -29,8 +26,10 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
   final CartService _cartService = CartService();
   final TextEditingController _searchController = TextEditingController();
 
- update-code
-  String selectedCategoryId = "All";
+  String? _selectedCategoryId;
+  String _searchQuery = '';
+  int _selectedNavIndex = 0;
+  final Set<String> _favoriteProductIds = <String>{};
   String? _avatarUrl;
   String? _displayName;
 
@@ -59,13 +58,12 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
   }
 
   Future<void> _handleLogout() async {
-
-  String? _selectedCategoryId;
-  String _searchQuery = '';
-  int _selectedNavIndex = 0;
-  final Set<String> _favoriteProductIds = <String>{};
-
-  User? get currentUser => FirebaseAuth.instance.currentUser;
+    await _authService.logout();
+    if (!mounted) {
+      return;
+    }
+    Navigator.pushReplacementNamed(context, '/login');
+  }
 
   // Badge dùng chung cho icon (giỏ hàng, yêu thích)
   Widget _buildCountBadge(
@@ -78,7 +76,6 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
     }
 
     final label = count > 99 ? '99+' : count.toString();
- main
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
@@ -105,14 +102,6 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
   void dispose() {
     _searchController.dispose();
     super.dispose();
-  }
-
-  Future<void> _handleLogout() async {
-    await _authService.logout();
-    if (!mounted) {
-      return;
-    }
-    Navigator.pushReplacementNamed(context, '/login');
   }
 
   // Thông báo top cho YÊU THÍCH (màu đỏ)
@@ -333,9 +322,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
     );
   }
 
- update-code
-  Drawer _buildDrawer() {
-
+  Widget _buildDrawer() {
     return Drawer(
       child: Column(
         children: [
@@ -434,13 +421,10 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
     );
   }
 
-  Widget _buildCartIcon() {
-
   // Nút yêu thích trên AppBar với badge số lượng
   Widget _buildFavoriteIcon() {
     final hasFavorites = _favoriteProductIds.isNotEmpty;
     final favoriteCount = _favoriteProductIds.length;
- main
 
     return Stack(
       clipBehavior: Clip.none,
@@ -931,74 +915,6 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
             ),
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _buildDrawer() {
-    return Drawer(
-      child: Column(
-        children: [
-          UserAccountsDrawerHeader(
-            decoration: const BoxDecoration(color: Colors.blue),
-            currentAccountPicture: const CircleAvatar(
-              backgroundColor: Colors.white,
-              child: Icon(Icons.person, size: 40, color: Colors.blue),
-            ),
-            accountName: Text(
-              currentUser?.email?.split('@')[0] ?? 'Khách hàng',
-              style: const TextStyle(fontWeight: FontWeight.bold),
-            ),
-            accountEmail: Text(currentUser?.email ?? 'Chưa đăng nhập'),
-          ),
-          ListTile(
-            leading: const Icon(Icons.home_outlined, color: Colors.blue),
-            title: const Text('Trang chủ'),
-            onTap: () => Navigator.pop(context),
-          ),
-          ListTile(
-            leading: const Icon(Icons.history, color: Colors.blue),
-            title: const Text('Lịch sử đơn hàng'),
-            onTap: () {},
-          ),
-          ListTile(
-            leading: const Icon(Icons.person, color: Colors.blue),
-            title: const Text('Thông tin cá nhân'),
-            onTap: () {
-              Navigator.pop(context);
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const ProfileScreen()),
-              );
-            },
-          ),
-          ListTile(
-            leading: const Icon(Icons.lock, color: Colors.orange),
-            title: const Text('Đổi mật khẩu'),
-            onTap: () {
-              Navigator.pop(context);
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const ChangePasswordScreen()),
-              );
-            },
-          ),
-          const Divider(),
-          currentUser == null
-              ? ListTile(
-                  leading: const Icon(Icons.login, color: Colors.green),
-                  title: const Text('Đăng nhập ngay'),
-                  onTap: () => Navigator.pushNamed(context, '/login'),
-                )
-              : ListTile(
-                  leading: const Icon(Icons.logout, color: Colors.redAccent),
-                  title: const Text('Đăng xuất'),
-                  onTap: () {
-                    Navigator.pop(context);
-                    _handleLogout();
-                  },
-                ),
-        ],
       ),
     );
   }
