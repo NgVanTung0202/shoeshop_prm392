@@ -22,15 +22,15 @@ class DBSeeder {
 
       await catSneakerRef.set({
         'name': 'Sneakers',
-        'imageUrl': 'https://cdn-icons-png.flaticon.com/512/2742/2742674.png'
+        'isDeleted': false,
       });
       await catRunningRef.set({
         'name': 'Running',
-        'imageUrl': 'https://cdn-icons-png.flaticon.com/512/10336/10336279.png'
+        'isDeleted': false,
       });
       await catSandalRef.set({
         'name': 'Sandal',
-        'imageUrl': 'https://cdn-icons-png.flaticon.com/512/2553/2553714.png'
+        'isDeleted': false,
       });
 
       debugPrint('✅ Categories seeded');

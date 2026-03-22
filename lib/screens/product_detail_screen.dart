@@ -7,6 +7,7 @@ import '../models/review_model.dart';
 import '../services/cart_service.dart';
 import '../services/firestore_service.dart';
 import '../utils/format_utils.dart';
+import '../widgets/storage_network_image.dart';
 
 class ProductDetailScreen extends StatefulWidget {
   final ProductModel product;
@@ -142,11 +143,21 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                 child: AnimatedOpacity(
                   duration: const Duration(milliseconds: 500),
                   opacity: _animateHeroImage ? 1 : 0,
-                  child: widget.product.imageUrl.startsWith('http')
-                      ? Image.network(widget.product.imageUrl,
-                          fit: BoxFit.contain)
-                      : Image.asset(widget.product.imageUrl,
-                          fit: BoxFit.contain),
+                  child: ProductModel.isNetworkImageUrl(widget.product.imageUrl)
+                      ? StorageNetworkImage(
+                          url: widget.product.imageUrl,
+                          fit: BoxFit.contain,
+                          width: double.infinity,
+                          height: 300,
+                          fallback: const Center(
+                            child: Icon(Icons.broken_image_outlined, size: 48),
+                          ),
+                        )
+                      : Image.asset(
+                          ProductModel.normalizeLocalAssetPath(
+                              widget.product.imageUrl),
+                          fit: BoxFit.contain,
+                        ),
                 ),
               ),
             ),

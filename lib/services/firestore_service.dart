@@ -13,6 +13,10 @@ class FirestoreService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
   final FirebaseStorage _storage = FirebaseStorage.instance;
 
+  /// Danh mục dự phòng: sản phẩm được gán về đây khi xóa danh mục; không cho xóa doc này.
+  static const String defaultUncategorizedCategoryId = 'uncategorized';
+  static const String defaultUncategorizedCategoryName = 'Chưa phân loại';
+
   String _normalizeOrderStatus(String status) {
     switch (status.toLowerCase()) {
       case 'pending':
@@ -178,34 +182,83 @@ class FirestoreService {
 
   Stream<List<CategoryModel>> getCategories() {
     return _db.collection("categories").snapshots().map((snapshot) {
-      return snapshot.docs.map((doc) {
-        final data = doc.data();
-        return CategoryModel(
-          id: doc.id,
-          name: data["name"] ?? "",
-          imageUrl: data["imageUrl"] ?? "",
-        );
-      }).toList();
+      return snapshot.docs
+          .map((doc) {
+            final data = doc.data();
+            return CategoryModel(
+              id: doc.id,
+              name: data["name"] ?? "",
+              isDeleted: data["isDeleted"] == true,
+            );
+          })
+          .where((c) => !c.isDeleted)
+          .toList();
     });
   }
 
-  Future<void> addCategory(String name, {String imageUrl = ""}) async {
+  Future<void> addCategory(String name) async {
     await _db.collection("categories").add({
       "name": name,
-      "imageUrl": imageUrl,
+      "isDeleted": false,
     });
   }
 
-  Future<void> updateCategory(String id, String name,
-      {String imageUrl = ""}) async {
+  Future<void> updateCategory(String id, String name) async {
     await _db.collection("categories").doc(id).update({
       "name": name,
-      "imageUrl": imageUrl,
     });
   }
 
-  Future<void> deleteCategory(String id) async {
-    await _db.collection("categories").doc(id).delete();
+  /// Tạo (nếu chưa có) danh mục mặc định để gán sản phẩm khi xóa danh mục.
+  Future<String> ensureDefaultUncategorizedCategory() async {
+    final ref =
+        _db.collection("categories").doc(defaultUncategorizedCategoryId);
+    final snap = await ref.get();
+    if (!snap.exists) {
+      await ref.set({
+        "name": defaultUncategorizedCategoryName,
+        "isDeleted": false,
+      });
+    }
+    return defaultUncategorizedCategoryId;
+  }
+
+  /// Xóa mềm danh mục: gán mọi sản phẩm sang [Chưa phân loại], rồi đánh dấu `isDeleted`.
+  Future<void> deleteCategory(String categoryId) async {
+    if (categoryId == defaultUncategorizedCategoryId) {
+      throw Exception(
+          'Không thể xóa danh mục mặc định "$defaultUncategorizedCategoryName".');
+    }
+
+    await ensureDefaultUncategorizedCategory();
+
+    final productsSnap = await _db
+        .collection("products")
+        .where("categoryId", isEqualTo: categoryId)
+        .get();
+
+    const int batchSize = 400;
+    WriteBatch batch = _db.batch();
+    int ops = 0;
+
+    for (final doc in productsSnap.docs) {
+      batch.update(doc.reference, {
+        "categoryId": defaultUncategorizedCategoryId,
+      });
+      ops++;
+      if (ops >= batchSize) {
+        await batch.commit();
+        batch = _db.batch();
+        ops = 0;
+      }
+    }
+    if (ops > 0) {
+      await batch.commit();
+    }
+
+    await _db.collection("categories").doc(categoryId).update({
+      "isDeleted": true,
+    });
   }
 
   /// ================= PRODUCT =================
@@ -263,6 +316,35 @@ class FirestoreService {
     final ref = _storage.ref().child("images/$fileName.jpg");
     await ref.putFile(file);
     return await ref.getDownloadURL();
+  }
+
+  /// Web / mobile: không dùng dart:io File — dùng XFile + putData.
+  Future<String> uploadImageFromXFile(XFile xfile) async {
+    final original = xfile.name;
+    final ext = original.contains('.')
+        ? original.substring(original.lastIndexOf('.')).toLowerCase()
+        : '.jpg';
+    const allowed = {'.jpg', '.jpeg', '.png', '.webp'};
+    final safeExt = allowed.contains(ext) ? ext : '.jpg';
+    final fileName = '${DateTime.now().millisecondsSinceEpoch}$safeExt';
+    final ref = _storage.ref().child('images/$fileName');
+    final bytes = await xfile.readAsBytes();
+    final metadata = SettableMetadata(
+      contentType: _imageContentTypeForExtension(safeExt),
+    );
+    await ref.putData(bytes, metadata);
+    return await ref.getDownloadURL();
+  }
+
+  String _imageContentTypeForExtension(String ext) {
+    switch (ext) {
+      case '.png':
+        return 'image/png';
+      case '.webp':
+        return 'image/webp';
+      default:
+        return 'image/jpeg';
+    }
   }
 
   /// ================= REVIEWS =================

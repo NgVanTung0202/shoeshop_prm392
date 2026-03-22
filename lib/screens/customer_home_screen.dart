@@ -1,8 +1,8 @@
 import 'dart:async';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import '../models/product_model.dart';
 import 'package:flutter/material.dart';
+
 import '../models/category_model.dart';
 import '../models/product_model.dart';
 import '../services/auth_service.dart';
@@ -13,8 +13,8 @@ import 'cart_screen.dart';
 import 'change_password_screen.dart';
 import 'product_detail_screen.dart';
 import 'profile_screen.dart';
+import '../widgets/storage_network_image.dart';
 import 'brand_shoes_screen.dart';
-import '../data/shoe_data.dart';
 import 'order_history_screen.dart';
 
 class CustomerHomeScreen extends StatefulWidget {
@@ -33,7 +33,6 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
   String? _avatarUrl;
   String? _displayName;
   String? _selectedCategoryId;
-  String? _selectedCategoryName;
   String? _selectedBrand;
   String _searchQuery = '';
   int _selectedNavIndex = 0;
@@ -46,416 +45,19 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
 
   User? get currentUser => FirebaseAuth.instance.currentUser;
 
-  // Badge dùng chung cho icon (giỏ hàng, yêu thích)
-  Widget _buildCountBadge(
-    int count, {
-    Color backgroundColor = Colors.red,
-    Color textColor = Colors.white,
-  }) {
-    if (count <= 0) {
-      return const SizedBox.shrink();
-    }
-
-    final label = count > 99 ? '99+' : count.toString();
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
-      decoration: BoxDecoration(
-        color: backgroundColor,
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: Colors.white, width: 1.6),
-      ),
-      constraints: const BoxConstraints(minWidth: 18, minHeight: 18),
-      child: Text(
-        label,
-        textAlign: TextAlign.center,
-        style: TextStyle(
-          color: textColor,
-          fontSize: 11,
-          fontWeight: FontWeight.w700,
-          height: 1.1,
-        ),
-      ),
-    );
-  }
-
-  @override
-  void dispose() {
-    _bannerTimer?.cancel();
-    _pageController.dispose();
-    _searchController.dispose();
-    super.dispose();
-  }
-
-  Future<void> _handleLogout() async {
-    await _authService.logout();
-    if (!mounted) {
-      return;
-    }
-    Navigator.pushReplacementNamed(context, '/login');
-  }
-
-  // Thông báo top cho YÊU THÍCH (màu đỏ)
-  Future<void> _showTopFavoriteNotice(String message) async {
-    final navigator = Navigator.of(context, rootNavigator: true);
-    bool alreadyClosed = false;
-
-    showGeneralDialog<void>(
-      context: context,
-      barrierDismissible: true,
-      barrierLabel: 'favorite_notice',
-      barrierColor: Colors.transparent,
-      transitionDuration: const Duration(milliseconds: 260),
-      pageBuilder: (dialogContext, __, ___) {
-        return SafeArea(
-          child: Align(
-            alignment: Alignment.topCenter,
-            child: Material(
-              color: Colors.transparent,
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 520),
-                child: Container(
-                  margin: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 14,
-                    vertical: 12,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(
-                      color: Colors.red.withOpacity(0.25),
-                    ),
-                  ),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.favorite, color: Colors.red, size: 22),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: Text(
-                          message,
-                          style: const TextStyle(fontWeight: FontWeight.w600),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ),
-        );
-      },
-      transitionBuilder: (context, animation, secondaryAnimation, child) {
-        final curved = CurvedAnimation(
-          parent: animation,
-          curve: Curves.easeOut,
-        );
-        return FadeTransition(
-          opacity: curved,
-          child: SlideTransition(
-            position: Tween<Offset>(
-              begin: const Offset(0, -0.35),
-              end: Offset.zero,
-            ).animate(curved),
-            child: child,
-          ),
-        );
-      },
-    ).then((_) {
-      alreadyClosed = true;
-    });
-
-    await Future<void>.delayed(const Duration(milliseconds: 1400));
-    if (!mounted || alreadyClosed) return;
-    if (navigator.canPop()) {
-      navigator.pop();
-    }
-  }
-
-  // Thông báo top cho GIỎ HÀNG (màu xanh)
-  Future<void> _showTopCartNotice(String message) async {
-    final navigator = Navigator.of(context, rootNavigator: true);
-    bool alreadyClosed = false;
-
-    showGeneralDialog<void>(
-      context: context,
-      barrierDismissible: true,
-      barrierLabel: 'cart_notice',
-      barrierColor: Colors.transparent,
-      transitionDuration: const Duration(milliseconds: 260),
-      pageBuilder: (dialogContext, __, ___) {
-        return SafeArea(
-          child: Align(
-            alignment: Alignment.topCenter,
-            child: Material(
-              color: Colors.transparent,
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 520),
-                child: Container(
-                  margin: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 14,
-                    vertical: 12,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(
-                      color: Colors.green.withOpacity(0.25),
-                    ),
-                  ),
-                  child: Row(
-                    children: [
-                      const Icon(
-                        Icons.check_circle,
-                        color: Colors.green,
-                        size: 22,
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: Text(
-                          message,
-                          style: const TextStyle(fontWeight: FontWeight.w600),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ),
-        );
-      },
-      transitionBuilder: (context, animation, secondaryAnimation, child) {
-        final curved = CurvedAnimation(
-          parent: animation,
-          curve: Curves.easeOut,
-        );
-        return FadeTransition(
-          opacity: curved,
-          child: SlideTransition(
-            position: Tween<Offset>(
-              begin: const Offset(0, -0.35),
-              end: Offset.zero,
-            ).animate(curved),
-            child: child,
-          ),
-        );
-      },
-    ).then((_) {
-      alreadyClosed = true;
-    });
-
-    await Future<void>.delayed(const Duration(milliseconds: 1400));
-    if (!mounted || alreadyClosed) return;
-    if (navigator.canPop()) {
-      navigator.pop();
-    }
-  }
-
-  Future<void> _openCartScreen() async {
-    await Navigator.push(
-      context,
-      MaterialPageRoute(builder: (_) => const CartScreen()),
-    );
-    if (!mounted) return;
-    setState(() {});
-  }
-
-  Future<void> _openProductDetail(ProductModel product) async {
-    await Navigator.push(
-      context,
-      MaterialPageRoute(builder: (_) => ProductDetailScreen(product: product)),
-    );
-    if (!mounted) return;
-    setState(() {});
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.white,
-      drawer: _buildDrawer(),
-      appBar: AppBar(
-        elevation: 0,
-        backgroundColor: Colors.white,
-        iconTheme: const IconThemeData(color: Colors.blue),
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Chào mừng bạn,',
-              style: TextStyle(color: Colors.grey, fontSize: 13),
-            ),
-            Text(
-              currentUser?.email?.split('@')[0] ?? 'Khách hàng',
-              style: const TextStyle(
-                color: Colors.blue,
-                fontWeight: FontWeight.bold,
-                fontSize: 17,
-              ),
-            ),
-          ],
-        ),
-        actions: [_buildFavoriteIcon(), const SizedBox(width: 8)],
-      ),
-      body: SafeArea(
-        child: Column(
-          children: [
-            _buildSearchBar(),
-            _buildBannerSlider(),
-            const SizedBox(height: 10),
-            _buildBrandList(), // Fix: Add Brand UI
-            const SizedBox(height: 10),
-            _buildSortDropdown(),
-            const SizedBox(height: 10),
-            _buildProductGrid(),
-          ],
-        ),
-      ),
-      bottomNavigationBar: _buildBottomNavBar(),
-    );
-  }
-
-  Drawer _buildDrawer() {
-
-    return Drawer(
-      child: Column(
-        children: [
-
-          UserAccountsDrawerHeader(
-            decoration: const BoxDecoration(color: Colors.blue),
-
-            currentAccountPicture: CircleAvatar(
-              backgroundColor: Colors.white,
-              backgroundImage: (_avatarUrl != null && _avatarUrl!.isNotEmpty)
-                  ? NetworkImage(_avatarUrl!)
-                  : null,
-              child: (_avatarUrl == null || _avatarUrl!.isEmpty)
-                  ? const Icon(Icons.person, size: 40, color: Colors.blue)
-                  : null,
-            ),
-
-            accountName: Text(
-              _displayName?.isNotEmpty == true
-                  ? _displayName!
-                  : (currentUser?.email?.split('@')[0] ?? "Khách hàng"),
-              style: const TextStyle(fontWeight: FontWeight.bold),
-            ),
-
-            accountEmail: Text(
-              currentUser?.email ?? "Chưa đăng nhập",
-            ),
-          ),
-
-          ListTile(
-            leading: const Icon(Icons.home_outlined, color: Colors.blue),
-            title: const Text("Trang chủ"),
-            onTap: () => Navigator.pop(context),
-          ),
-
-          ListTile(
-            leading: const Icon(Icons.category, color: Colors.blue),
-            title: const Text("Bộ sưu tập hãng (Brands)"),
-            onTap: () {
-              Navigator.pop(context); // Đóng drawer
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => BrandShoesScreen(
-                    onShoeSelected: (shoeName) {
-                      setState(() {
-                        _searchController.text = shoeName;
-                        _searchQuery = shoeName.toLowerCase();
-                      });
-                    },
-                  ),
-                ),
-              );
-            },
-          ),
-
-          ListTile(
-            leading: const Icon(Icons.history, color: Colors.blue),
-            title: const Text("Lịch sử đơn hàng"),
-            onTap: () {
-              Navigator.pop(context);
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const OrderHistoryScreen()),
-              );
-            },
-          ),
-
-          ListTile(
-            leading: const Icon(Icons.person, color: Colors.blue),
-            title: const Text("Thông tin cá nhân"),
-            onTap: () {
-
-              Navigator.pop(context);
-
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => const ProfileScreen(),
-                ),
-              ).then((_) => _loadUserInfo());
-            },
-          ),
-
-          ListTile(
-            leading: const Icon(Icons.lock, color: Colors.orange),
-            title: const Text("Đổi mật khẩu"),
-            onTap: () {
-
-              Navigator.pop(context);
-
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => const ChangePasswordScreen(),
-                ),
-              );
-            },
-          ),
-
-          const Divider(),
-
-          currentUser == null
-              ? ListTile(
-                  leading: const Icon(Icons.login, color: Colors.green),
-                  title: const Text("Đăng nhập ngay"),
-                  onTap: () {
-                    Navigator.pushNamed(context, '/login');
-                  },
-                )
-              : ListTile(
-                  leading:
-                      const Icon(Icons.logout, color: Colors.redAccent),
-                  title: const Text("Đăng xuất"),
-                  onTap: () {
-
-                    Navigator.pop(context);
-                    _handleLogout();
-                  },
-                ),
-        ],
-      ),
-    );
-  }
-
   @override
   void initState() {
     super.initState();
     _loadUserInfo();
-    _startBannerTimer();
+    _startBannerTimer(); // Kích hoạt chạy banner tự động
   }
 
+  // --- LOGIC TỰ ĐỘNG CHẠY BANNER (MINHBVHE) ---
   void _startBannerTimer() {
     _bannerTimer = Timer.periodic(const Duration(seconds: 3), (timer) {
       if (_pageController.hasClients) {
         int nextPage = _currentBannerIndex + 1;
-        if (nextPage >= 5) { // We have 5 banners (banner1 -> banner5)
+        if (nextPage >= 5) { // Reset về trang đầu sau 5 banner
           nextPage = 0;
           _pageController.jumpToPage(nextPage);
         } else {
@@ -485,34 +87,150 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
     }
   }
 
-  // Nút yêu thích trên AppBar với badge số lượng
-  Widget _buildFavoriteIcon() {
-    final hasFavorites = _favoriteProductIds.isNotEmpty;
-    final favoriteCount = _favoriteProductIds.length;
+  Future<void> _handleLogout() async {
+    await _authService.logout();
+    if (!mounted) return;
+    Navigator.pushReplacementNamed(context, '/login');
+  }
 
+  @override
+  void dispose() {
+    _bannerTimer?.cancel(); // Hủy timer tránh rò rỉ bộ nhớ
+    _pageController.dispose();
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  // Badge dùng chung cho icon
+  Widget _buildCountBadge(int count, {Color backgroundColor = Colors.red}) {
+    if (count <= 0) return const SizedBox.shrink();
+    final label = count > 99 ? '99+' : count.toString();
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+      decoration: BoxDecoration(
+        color: backgroundColor,
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: Colors.white, width: 1.6),
+      ),
+      constraints: const BoxConstraints(minWidth: 18, minHeight: 18),
+      child: Text(
+        label,
+        textAlign: TextAlign.center,
+        style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w700, height: 1.1),
+      ),
+    );
+  }
+
+  // Thông báo Custom Top Notice
+  Future<void> _showTopNotice(String message, IconData icon, Color color) async {
+    final navigator = Navigator.of(context, rootNavigator: true);
+    showGeneralDialog<void>(
+      context: context,
+      barrierDismissible: true,
+      barrierLabel: 'notice',
+      barrierColor: Colors.transparent,
+      transitionDuration: const Duration(milliseconds: 260),
+      pageBuilder: (dialogContext, __, ___) {
+        return SafeArea(
+          child: Align(
+            alignment: Alignment.topCenter,
+            child: Material(
+              color: Colors.transparent,
+              child: Container(
+                margin: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: color.withOpacity(0.25)),
+                  boxShadow: [BoxShadow(color: color.withOpacity(0.1), blurRadius: 10)],
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(icon, color: color, size: 22),
+                    const SizedBox(width: 10),
+                    Text(message, style: const TextStyle(fontWeight: FontWeight.w600)),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+      transitionBuilder: (context, animation, _, child) {
+        return FadeTransition(
+          opacity: animation,
+          child: SlideTransition(
+            position: Tween<Offset>(begin: const Offset(0, -0.3), end: Offset.zero).animate(animation),
+            child: child,
+          ),
+        );
+      },
+    );
+    await Future.delayed(const Duration(milliseconds: 1500));
+    if (mounted && navigator.canPop()) navigator.pop();
+  }
+
+  Future<void> _openCartScreen() async {
+    await Navigator.push(context, MaterialPageRoute(builder: (_) => const CartScreen()));
+    if (mounted) setState(() {});
+  }
+
+  Future<void> _openProductDetail(ProductModel product) async {
+    await Navigator.push(context, MaterialPageRoute(builder: (_) => ProductDetailScreen(product: product)));
+    if (mounted) setState(() {});
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.white,
+      drawer: _buildDrawer(),
+      appBar: AppBar(
+        elevation: 0,
+        backgroundColor: Colors.white,
+        iconTheme: const IconThemeData(color: Colors.blue),
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('Chào mừng bạn,', style: TextStyle(color: Colors.grey, fontSize: 13)),
+            Text(
+              _displayName?.isNotEmpty == true ? _displayName! : (currentUser?.email?.split('@')[0] ?? 'Khách hàng'),
+              style: const TextStyle(color: Colors.blue, fontWeight: FontWeight.bold, fontSize: 17),
+            ),
+          ],
+        ),
+        actions: [_buildFavoriteIcon(), const SizedBox(width: 8)],
+      ),
+      body: SafeArea(
+        child: Column(
+          children: [
+            _buildSearchBar(),
+            _buildBannerSlider(),
+            const SizedBox(height: 12),
+            _buildBrandList(), // Brand UI của minhbvhe
+            const SizedBox(height: 10),
+            _buildSortDropdown(),
+            const SizedBox(height: 10),
+            _buildProductGrid(),
+          ],
+        ),
+      ),
+      bottomNavigationBar: _buildBottomNavBar(),
+    );
+  }
+
+  Widget _buildFavoriteIcon() {
+    final count = _favoriteProductIds.length;
     return Stack(
       clipBehavior: Clip.none,
       children: [
         IconButton(
-          icon: Icon(
-            hasFavorites ? Icons.favorite : Icons.favorite_border,
-            color: hasFavorites ? Colors.red : Colors.blue,
-            size: 28,
-          ),
-          onPressed: () {
-            final msg =
-                hasFavorites
-                    ? 'Bạn có $favoriteCount sản phẩm yêu thích'
-                    : 'Chưa có sản phẩm yêu thích';
-            _showTopFavoriteNotice(msg);
-          },
+          icon: Icon(count > 0 ? Icons.favorite : Icons.favorite_border, color: count > 0 ? Colors.red : Colors.blue, size: 28),
+          onPressed: () => _showTopNotice(count > 0 ? 'Bạn có $count sản phẩm yêu thích' : 'Chưa có yêu thích', Icons.favorite, Colors.red),
         ),
-        if (favoriteCount > 0)
-          Positioned(
-            right: 6,
-            top: 6,
-            child: _buildCountBadge(favoriteCount, backgroundColor: Colors.red),
-          ),
+        if (count > 0) Positioned(right: 6, top: 6, child: _buildCountBadge(count)),
       ],
     );
   }
@@ -522,32 +240,16 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       child: TextField(
         controller: _searchController,
-        onChanged: (value) {
-          setState(() {
-            _searchQuery = value.trim().toLowerCase();
-          });
-        },
+        onChanged: (value) => setState(() => _searchQuery = value.trim().toLowerCase()),
         decoration: InputDecoration(
           hintText: 'Tìm kiếm mẫu giày mới...',
           prefixIcon: const Icon(Icons.search, color: Colors.blue),
-          suffixIcon:
-              _searchQuery.isNotEmpty
-                  ? IconButton(
-                      icon: const Icon(Icons.clear),
-                      onPressed: () {
-                        _searchController.clear();
-                        setState(() {
-                          _searchQuery = '';
-                        });
-                      },
-                    )
-                  : null,
+          suffixIcon: _searchQuery.isNotEmpty 
+            ? IconButton(icon: const Icon(Icons.clear), onPressed: () { _searchController.clear(); setState(() => _searchQuery = ''); }) 
+            : null,
           filled: true,
           fillColor: Colors.blue.shade50,
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(15),
-            borderSide: BorderSide.none,
-          ),
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide.none),
         ),
       ),
     );
@@ -556,30 +258,19 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
   Widget _buildBannerSlider() {
     return SizedBox(
       height: 150,
-      width: double.infinity,
       child: PageView.builder(
         controller: _pageController,
-        onPageChanged: (index) {
-          _currentBannerIndex = index;
-        },
+        onPageChanged: (index) => _currentBannerIndex = index,
         itemCount: 5,
         itemBuilder: (context, index) {
-          // Because assets/banner/ contains banner1.png through banner5.png
-          final bannerNumber = index + 1;
           return Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: ClipRRect(
               borderRadius: BorderRadius.circular(15),
               child: Image.asset(
-                'assets/banner/banner$bannerNumber.png',
+                'assets/banner/banner${index + 1}.png',
                 fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) {
-                  return Container(
-                    color: Colors.blue.shade100,
-                    alignment: Alignment.center,
-                    child: const Icon(Icons.image, size: 50, color: Colors.blue),
-                  );
-                },
+                errorBuilder: (_, __, ___) => Container(color: Colors.blue.shade100, child: const Icon(Icons.image, size: 50, color: Colors.blue)),
               ),
             ),
           );
@@ -594,15 +285,13 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
       child: FutureBuilder<List<String>>(
         future: _fs.getAllBrands(),
         builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator(strokeWidth: 2));
-          }
+          if (snapshot.connectionState == ConnectionState.waiting) return const SizedBox.shrink();
           final brands = snapshot.data ?? [];
           return ListView(
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.symmetric(horizontal: 16),
             children: [
-              _buildBrandChip(label: 'All Brands', value: null),
+              _buildBrandChip(label: 'Tất cả hãng', value: null),
               ...brands.map((b) => _buildBrandChip(label: b, value: b)),
             ],
           );
@@ -612,130 +301,64 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
   }
 
   Widget _buildBrandChip({required String label, String? value}) {
-    final bool isSelected = _selectedBrand == value;
-    final chipColor = Colors.orange; // Để phân biệt với màu xanh của Category
-
+    final isSelected = _selectedBrand == value;
+    const chipColor = Colors.orange; 
     return GestureDetector(
-      onTap: () {
-        setState(() {
-          _selectedBrand = value;
-        });
-      },
+      onTap: () => setState(() => _selectedBrand = value),
       child: Container(
         margin: const EdgeInsets.only(right: 12),
         padding: const EdgeInsets.symmetric(horizontal: 20),
         decoration: BoxDecoration(
           color: isSelected ? chipColor : chipColor.withOpacity(0.12),
           borderRadius: BorderRadius.circular(25),
-          border: Border.all(
-            color: isSelected ? chipColor : chipColor.withOpacity(0.35),
-          ),
+          border: Border.all(color: isSelected ? chipColor : chipColor.withOpacity(0.35)),
         ),
         alignment: Alignment.center,
-        child: Text(
-          label,
-          style: TextStyle(
-            color: isSelected ? Colors.white : chipColor,
-            fontWeight: FontWeight.w500,
-          ),
-        ),
+        child: Text(label, style: TextStyle(color: isSelected ? Colors.white : chipColor, fontWeight: FontWeight.w500)),
       ),
     );
   }
 
-
-  Color _chipColorForLabel(String label) {
-    if (label.toLowerCase() == 'all') {
-      return Colors.blue;
-    }
-
-    const palette = <Color>[
-      Colors.blue,
-      Colors.green,
-      Colors.orange,
-      Colors.purple,
-      Colors.teal,
-      Colors.indigo,
-      Colors.pink,
-    ];
-
-    return palette[label.hashCode.abs() % palette.length];
-  }
-
   Widget _buildSortDropdown() {
     final Map<String, String> sortOptions = {
-      'phobien': 'Phổ biến',
-      'giathap': 'Giá thấp đến cao',
-      'giacao': 'Giá cao đến thấp',
-      'danhgia': 'Nhiều đánh giá tốt',
-      'banchay': 'Bán chạy',
+      'phobien': 'Phổ biến', 'giathap': 'Giá thấp', 'giacao': 'Giá cao', 'banchay': 'Bán chạy',
     };
-
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          const Text(
-            'Tất cả sản phẩm',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-          ),
+          const Text('Tất cả sản phẩm', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
           InkWell(
-            onTap: () {
-              showModalBottomSheet(
-                context: context,
-                shape: const RoundedRectangleBorder(
-                  borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-                ),
-                builder: (context) {
-                  return Container(
-                    padding: const EdgeInsets.symmetric(vertical: 20),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Padding(
-                          padding: EdgeInsets.only(bottom: 10),
-                          child: Text(
-                            'Sắp xếp theo',
-                            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                          ),
-                        ),
-                        ...sortOptions.entries.map((entry) {
-                          final isSelected = entry.key == _selectedSort;
-                          return ListTile(
-                            title: Text(
-                              entry.value,
-                              style: TextStyle(
-                                color: isSelected ? Colors.blue : Colors.black,
-                                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                              ),
-                            ),
-                            trailing: isSelected ? const Icon(Icons.check, color: Colors.blue) : null,
-                            onTap: () {
-                              setState(() {
-                                _selectedSort = entry.key;
-                              });
-                              Navigator.pop(context);
-                            },
-                          );
-                        }),
-                      ],
-                    ),
-                  );
-                },
-              );
-            },
+            onTap: () => _showSortBottomSheet(sortOptions),
             child: Row(
               children: [
                 const Icon(Icons.sort, size: 20, color: Colors.blue),
                 const SizedBox(width: 4),
-                Text(
-                  sortOptions[_selectedSort] ?? 'Sắp xếp',
-                  style: const TextStyle(fontWeight: FontWeight.w600, color: Colors.blue),
-                ),
+                Text(sortOptions[_selectedSort] ?? 'Sắp xếp', style: const TextStyle(fontWeight: FontWeight.w600, color: Colors.blue)),
               ],
             ),
           ),
+        ],
+      ),
+    );
+  }
+
+  void _showSortBottomSheet(Map<String, String> options) {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (_) => Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const SizedBox(height: 20),
+          const Text('Sắp xếp theo', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          ...options.entries.map((e) => ListTile(
+            title: Text(e.value, style: TextStyle(color: _selectedSort == e.key ? Colors.blue : Colors.black)),
+            trailing: _selectedSort == e.key ? const Icon(Icons.check, color: Colors.blue) : null,
+            onTap: () { setState(() => _selectedSort = e.key); Navigator.pop(context); },
+          )),
+          const SizedBox(height: 20),
         ],
       ),
     );
@@ -746,75 +369,31 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
       child: StreamBuilder<List<ProductModel>>(
         stream: _fs.getProducts(),
         builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
+          if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator());
+          if (snapshot.hasError) return const Center(child: Text('Lỗi tải dữ liệu'));
 
-          if (snapshot.hasError) {
-            return const Center(child: Text('Không thể tải sản phẩm'));
-          }
+          final products = snapshot.data ?? [];
+          // LOGIC LỌC THUẦN TỪ DATA (MINHBVHE)
+          final filtered = products.where((p) {
+            bool matchCat = _selectedCategoryId == null || p.categoryId == _selectedCategoryId;
+            bool matchBrand = _selectedBrand == null || p.brand.toLowerCase() == _selectedBrand!.toLowerCase();
+            bool matchSearch = p.name.toLowerCase().contains(_searchQuery);
+            return matchCat && matchBrand && matchSearch;
+          }).toList();
 
-          final List<ProductModel> loadedProducts = snapshot.data ?? <ProductModel>[];
-          final List<ProductModel> products = List<ProductModel>.from(loadedProducts);
+          if (_selectedSort == 'giathap') filtered.sort((a, b) => a.price.compareTo(b.price));
+          else if (_selectedSort == 'giacao') filtered.sort((a, b) => b.price.compareTo(a.price));
+          else if (_selectedSort == 'banchay') filtered.sort((a, b) => b.soldCount.compareTo(a.soldCount));
 
-          final List<ProductModel> filteredProducts =
-              products.where((product) {
-                // 1. Lọc theo Category ID (KHÔNG dùng name hoặc brand nữa)
-                bool matchCategory = _selectedCategoryId == null || product.categoryId == _selectedCategoryId;
-
-                // 2. Lọc theo Hãng (Brand)
-                bool matchBrand = _selectedBrand == null || product.brand.toUpperCase() == _selectedBrand?.toUpperCase();
-
-                // 3. Lọc theo Search Query
-                bool matchSearch = true;
-                if (_searchQuery.isNotEmpty) {
-                  final String name = product.name.toLowerCase();
-                  matchSearch = name.contains(_searchQuery);
-                }
-
-                return matchCategory && matchBrand && matchSearch;
-              }).toList();
-
-          if (_selectedSort == 'giathap') {
-            filteredProducts.sort((a, b) => a.price.compareTo(b.price));
-          } else if (_selectedSort == 'giacao') {
-            filteredProducts.sort((a, b) => b.price.compareTo(a.price));
-          } else if (_selectedSort == 'danhgia') {
-            filteredProducts.sort((a, b) => b.rating.compareTo(a.rating));
-          } else if (_selectedSort == 'banchay') {
-            filteredProducts.sort((a, b) => b.soldCount.compareTo(a.soldCount));
-          } else if (_selectedSort == 'phobien') {
-            // Default, maybe just id sorting or default fetch order
-          }
-
-          if (filteredProducts.isEmpty) {
-            if (_searchQuery.isNotEmpty) {
-              return Center(
-                child: Text(
-                  "Không tìm thấy sản phẩm nào cho '$_searchQuery'",
-                  style: const TextStyle(fontSize: 16),
-                  textAlign: TextAlign.center,
-                ),
-              );
-            }
-
-            return const Center(
-              child: Text('Chưa có sản phẩm', style: TextStyle(fontSize: 16)),
-            );
-          }
+          if (filtered.isEmpty) return const Center(child: Text('Không tìm thấy sản phẩm nào'));
 
           return GridView.builder(
             padding: const EdgeInsets.all(16),
             gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 2,
-              childAspectRatio: 0.66,
-              mainAxisSpacing: 14,
-              crossAxisSpacing: 14,
+              crossAxisCount: 2, childAspectRatio: 0.66, mainAxisSpacing: 14, crossAxisSpacing: 14,
             ),
-            itemCount: filteredProducts.length,
-            itemBuilder: (context, index) {
-              return _buildProductCard(filteredProducts[index]);
-            },
+            itemCount: filtered.length,
+            itemBuilder: (_, index) => _buildProductCard(filtered[index]),
           );
         },
       ),
@@ -822,21 +401,14 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
   }
 
   Widget _buildProductCard(ProductModel product) {
-    final isFavorite = _favoriteProductIds.contains(product.id);
-
+    final isFav = _favoriteProductIds.contains(product.id);
     return GestureDetector(
       onTap: () => _openProductDetail(product),
       child: Container(
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(18),
-          boxShadow: const [
-            BoxShadow(
-              color: Color(0x14000000),
-              blurRadius: 10,
-              offset: Offset(0, 4),
-            ),
-          ],
+          boxShadow: const [BoxShadow(color: Color(0x14000000), blurRadius: 10, offset: Offset(0, 4))],
         ),
         child: Stack(
           children: [
@@ -845,32 +417,13 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
               children: [
                 Expanded(
                   child: Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(10),
-                    margin: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: Colors.blue.shade50,
-                      borderRadius: BorderRadius.circular(14),
-                    ),
+                    width: double.infinity, margin: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(color: Colors.blue.shade50, borderRadius: BorderRadius.circular(14)),
                     child: Hero(
                       tag: product.id,
-                      child: product.imageUrl.startsWith('http')
-                          ? Image.network(
-                              product.imageUrl,
-                              fit: BoxFit.contain,
-                              errorBuilder: (_, __, ___) => const Icon(
-                                Icons.image_not_supported_outlined,
-                                color: Colors.grey,
-                              ),
-                            )
-                          : Image.asset(
-                              product.imageUrl,
-                              fit: BoxFit.contain,
-                              errorBuilder: (_, __, ___) => const Icon(
-                                Icons.image_not_supported_outlined,
-                                color: Colors.grey,
-                              ),
-                            ),
+                      child: ProductModel.isNetworkImageUrl(product.imageUrl)
+                        ? StorageNetworkImage(url: product.imageUrl, fit: BoxFit.contain)
+                        : Image.asset(ProductModel.normalizeLocalAssetPath(product.imageUrl), fit: BoxFit.contain),
                     ),
                   ),
                 ),
@@ -879,98 +432,28 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        product.name,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        product.brand,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          color: Colors.grey.shade700,
-                          fontSize: 12,
-                        ),
-                      ),
+                      Text(product.name, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.bold)),
+                      Text(product.brand, style: TextStyle(color: Colors.grey.shade700, fontSize: 12)),
                       const SizedBox(height: 6),
                       Row(
                         children: [
                           Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                if (product.discountPercent > 0)
-                                  Text(
-                                    formatPrice(product.price * 100 / (100 - product.discountPercent)),
-                                    style: TextStyle(
-                                      color: Colors.grey.shade500,
-                                      fontWeight: FontWeight.w500,
-                                      fontSize: 11,
-                                      decoration: TextDecoration.lineThrough,
-                                    ),
-                                  ),
-                                Text(
-                                  formatPrice(product.price),
-                                  style: const TextStyle(
-                                    color: Colors.red,
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 14,
-                                  ),
-                                ),
-                              ],
-                            ),
+                            child: Text(formatPrice(product.price), style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold, fontSize: 14)),
                           ),
                           InkWell(
-                            borderRadius: BorderRadius.circular(999),
                             onTap: () {
+                              // LOGIC CHECK STOCK CỦA MINHBVHE
                               if (product.getTotalStock() <= 0) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text('Sản phẩm đã hết hàng, chuyển đến trang chi tiết...'),
-                                  ),
-                                );
-                                _openProductDetail(product);
+                                _showTopNotice('Sản phẩm đã hết hàng!', Icons.error_outline, Colors.orange);
                                 return;
                               }
-
-                              final inStock = product.sizesStock.entries
-                                  .where((e) => e.value > 0)
-                                  .toList();
-                              final size =
-                                  (inStock.isNotEmpty
-                                          ? inStock.first.key
-                                          : product.sizesStock.entries.first.key)
-                                      .toString();
-
+                              final size = product.sizesStock.entries.firstWhere((e) => e.value > 0).key.toString();
                               _cartService.addItem(product, size);
                               setState(() {});
-                              _showTopCartNotice(
-                                'Đã thêm sản phẩm vào giỏ hàng',
-                              );
+                              _showTopNotice('Đã thêm vào giỏ hàng', Icons.check_circle, Colors.green);
                             },
-                            child: Padding(
-                              padding: const EdgeInsets.all(6),
-                              child: Icon(
-                                Icons.add_circle,
-                                color: Colors.blue.shade600,
-                                size: 22,
-                              ),
-                            ),
+                            child: Icon(Icons.add_circle, color: Colors.blue.shade600, size: 22),
                           ),
-                        ],
-                      ),
-                      const SizedBox(height: 4),
-                      Row(
-                        children: [
-                          const Icon(Icons.star, color: Colors.amber, size: 14),
-                          const SizedBox(width: 3),
-                          Text('${product.rating.toStringAsFixed(1)}', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
-                          Text(' (${product.reviewCount})', style: const TextStyle(fontSize: 11, color: Colors.grey)),
-                          const Spacer(),
-                          Text('Đã bán: ${product.soldCount}', style: const TextStyle(fontSize: 11, color: Colors.grey)),
                         ],
                       ),
                     ],
@@ -978,55 +461,14 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
                 ),
               ],
             ),
-            if (product.discountPercent > 0)
-              Positioned(
-                top: 10,
-                left: 10,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
-                  decoration: BoxDecoration(
-                    color: Colors.red,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Text(
-                    '-${product.discountPercent}%',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 11,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              ),
             Positioned(
-              top: 10,
-              right: 10,
-              child: Material(
-                color: Colors.white.withOpacity(0.85),
-                borderRadius: BorderRadius.circular(999),
-                child: InkWell(
-                  borderRadius: BorderRadius.circular(999),
-                  onTap: () {
-                    setState(() {
-                      if (isFavorite) {
-                        _favoriteProductIds.remove(product.id);
-                      } else {
-                        _favoriteProductIds.add(product.id);
-                      }
-                    });
-
-                    if (!isFavorite) {
-                      _showTopFavoriteNotice('Đã thêm sản phẩm vào yêu thích');
-                    }
-                  },
-                  child: Padding(
-                    padding: const EdgeInsets.all(8),
-                    child: Icon(
-                      isFavorite ? Icons.favorite : Icons.favorite_border,
-                      color: isFavorite ? Colors.red : Colors.grey.shade600,
-                      size: 20,
-                    ),
-                  ),
+              top: 10, right: 10,
+              child: InkWell(
+                onTap: () => setState(() => isFav ? _favoriteProductIds.remove(product.id) : _favoriteProductIds.add(product.id)),
+                child: CircleAvatar(
+                  backgroundColor: Colors.white.withOpacity(0.8),
+                  radius: 16,
+                  child: Icon(isFav ? Icons.favorite : Icons.favorite_border, color: isFav ? Colors.red : Colors.grey, size: 18),
                 ),
               ),
             ),
@@ -1037,111 +479,63 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
   }
 
   Widget _buildBottomNavBar() {
-    final selectedColor = Theme.of(context).primaryColor;
-    final unselectedColor = Colors.grey.shade500;
+    return Container(
+      decoration: BoxDecoration(color: Colors.white, border: Border(top: BorderSide(color: Colors.grey.shade200))),
+      child: Row(
+        children: [
+          _buildNavItem(0, Icons.home, () => setState(() => _selectedNavIndex = 0)),
+          _buildNavItem(1, Icons.shopping_cart, _openCartScreen, badgeCount: _cartService.getTotalItems()),
+          _buildNavItem(2, Icons.person, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ProfileScreen()))),
+        ],
+      ),
+    );
+  }
 
-    Widget buildItem({
-      required int index,
-      required IconData icon,
-      required VoidCallback onTap,
-      int badgeCount = 0,
-    }) {
-      final isSelected = _selectedNavIndex == index;
-
-      return Expanded(
-        child: InkWell(
-          onTap: onTap,
-          child: Padding(
-            padding: const EdgeInsets.only(top: 10, bottom: 8),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                SizedBox(
-                  width: 30,
-                  height: 26,
-                  child: Stack(
-                    clipBehavior: Clip.none,
-                    children: [
-                      Align(
-                        alignment: Alignment.center,
-                        child: Icon(
-                          icon,
-                          size: 26,
-                          color: isSelected ? selectedColor : unselectedColor,
-                        ),
-                      ),
-                      if (badgeCount > 0)
-                        Positioned(
-                          right: -6,
-                          top: -8,
-                          child: _buildCountBadge(
-                            badgeCount,
-                            backgroundColor: Colors.red,
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 8),
-                AnimatedContainer(
-                  duration: const Duration(milliseconds: 180),
-                  width: 22,
-                  height: 3,
-                  decoration: BoxDecoration(
-                    color: isSelected ? selectedColor : Colors.transparent,
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                ),
-              ],
-            ),
+  Widget _buildNavItem(int index, IconData icon, VoidCallback onTap, {int badgeCount = 0}) {
+    final isSel = _selectedNavIndex == index;
+    return Expanded(
+      child: InkWell(
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  Icon(icon, color: isSel ? Colors.blue : Colors.grey, size: 26),
+                  if (badgeCount > 0) Positioned(right: -8, top: -8, child: _buildCountBadge(badgeCount)),
+                ],
+              ),
+              const SizedBox(height: 4),
+              if (isSel) Container(width: 20, height: 3, decoration: BoxDecoration(color: Colors.blue, borderRadius: BorderRadius.circular(10))),
+            ],
           ),
-        ),
-      );
-    }
-
-    return SafeArea(
-      child: Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          border: Border(top: BorderSide(color: Colors.grey.shade200)),
-        ),
-        child: Row(
-          children: [
-            buildItem(
-              index: 0,
-              icon: Icons.home_outlined,
-              onTap: () {
-                setState(() => _selectedNavIndex = 0);
-              },
-            ),
-            buildItem(
-              index: 1,
-              icon: Icons.shopping_cart_outlined,
-              badgeCount: _cartService.getTotalItems(),
-              onTap: () async {
-                setState(() => _selectedNavIndex = 1);
-                await _openCartScreen();
-                if (!mounted) return;
-                setState(() => _selectedNavIndex = 0);
-              },
-            ),
-            buildItem(
-              index: 2,
-              icon: Icons.person_outline,
-              onTap: () async {
-                setState(() => _selectedNavIndex = 2);
-                await Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const ProfileScreen()),
-                );
-                if (!mounted) return;
-                setState(() => _selectedNavIndex = 0);
-              },
-            ),
-          ],
         ),
       ),
     );
   }
 
+  Widget _buildDrawer() {
+    return Drawer(
+      child: Column(
+        children: [
+          UserAccountsDrawerHeader(
+            decoration: const BoxDecoration(color: Colors.blue),
+            currentAccountPicture: CircleAvatar(
+              backgroundColor: Colors.white,
+              backgroundImage: (_avatarUrl != null && _avatarUrl!.isNotEmpty) ? NetworkImage(_avatarUrl!) : null,
+              child: (_avatarUrl == null || _avatarUrl!.isEmpty) ? const Icon(Icons.person, size: 40, color: Colors.blue) : null,
+            ),
+            accountName: Text(_displayName ?? "Khách hàng", style: const TextStyle(fontWeight: FontWeight.bold)),
+            accountEmail: Text(currentUser?.email ?? ""),
+          ),
+          ListTile(leading: const Icon(Icons.home_outlined), title: const Text("Trang chủ"), onTap: () => Navigator.pop(context)),
+          ListTile(leading: const Icon(Icons.history), title: const Text("Lịch sử đơn hàng"), onTap: () { Navigator.pop(context); Navigator.push(context, MaterialPageRoute(builder: (_) => const OrderHistoryScreen())); }),
+          ListTile(leading: const Icon(Icons.logout, color: Colors.red), title: const Text("Đăng xuất"), onTap: _handleLogout),
+        ],
+      ),
+    );
+  }
 }

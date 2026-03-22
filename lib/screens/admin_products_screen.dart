@@ -1,13 +1,15 @@
+import 'dart:typed_data';
+
+import 'package:firebase_core/firebase_core.dart' show FirebaseException;
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart';
 import 'package:image_picker/image_picker.dart';
-import 'dart:io';
 
 import '../models/product_model.dart';
 import '../models/category_model.dart';
 import '../services/firestore_service.dart';
 import '../services/db_seeder.dart';
 import '../widgets/admin_drawer.dart';
+import '../widgets/storage_network_image.dart';
 
 class AdminProductsScreen extends StatefulWidget {
   const AdminProductsScreen({super.key});
@@ -18,7 +20,8 @@ class AdminProductsScreen extends StatefulWidget {
 
 class _AdminProductsScreenState extends State<AdminProductsScreen> {
   final FirestoreService _fs = FirestoreService();
-  File? _selectedImage;
+  XFile? _pickedProductImage;
+  Uint8List? _productImagePreviewBytes;
   final TextEditingController _searchController = TextEditingController();
 
   String _searchQuery = ''; // Đổi thành biến thường để cập nhật được
@@ -32,7 +35,7 @@ class _AdminProductsScreenState extends State<AdminProductsScreen> {
     super.dispose();
   }
 
-  // --- Hàm chọn ảnh ---
+  // --- Hàm chọn ảnh (mobile + web: XFile + preview bytes) ---
   Future<void> _pickImage(StateSetter setDialogState) async {
     final picker = ImagePicker();
     final pickedFile = await picker.pickImage(
@@ -42,16 +45,10 @@ class _AdminProductsScreenState extends State<AdminProductsScreen> {
 
     if (pickedFile == null) return;
 
-    if (kIsWeb) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Upload ảnh tốt nhất trên mobile/emulator")),
-      );
-      return;
-    }
-
+    final bytes = await pickedFile.readAsBytes();
     setDialogState(() {
-      _selectedImage = File(pickedFile.path);
+      _pickedProductImage = pickedFile;
+      _productImagePreviewBytes = bytes;
     });
   }
 
@@ -70,9 +67,30 @@ class _AdminProductsScreenState extends State<AdminProductsScreen> {
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
             onPressed: () async {
-              await _fs.deleteProduct(product.id, product.imageUrl);
-              if (!mounted) return;
-              Navigator.pop(dialogContext);
+              final messenger = ScaffoldMessenger.of(context);
+              try {
+                await _fs.deleteProduct(product.id, product.imageUrl);
+                if (!mounted) return;
+                Navigator.pop(dialogContext);
+                messenger.showSnackBar(
+                  SnackBar(
+                    content: Text('Đã xóa "${product.name}"'),
+                    backgroundColor: Colors.green.shade700,
+                  ),
+                );
+              } catch (e) {
+                if (!mounted) return;
+                Navigator.pop(dialogContext);
+                final msg = e is FirebaseException && e.message != null && e.message!.isNotEmpty
+                    ? e.message!
+                    : e.toString();
+                messenger.showSnackBar(
+                  SnackBar(
+                    content: Text('Không thể xóa: $msg'),
+                    backgroundColor: Colors.red.shade800,
+                  ),
+                );
+              }
             },
             child: const Text("Xóa", style: TextStyle(color: Colors.white)),
           ),
@@ -99,7 +117,8 @@ class _AdminProductsScreenState extends State<AdminProductsScreen> {
         )
     };
 
-    _selectedImage = null;
+    _pickedProductImage = null;
+    _productImagePreviewBytes = null;
 
     showDialog(
       context: context,
@@ -120,10 +139,13 @@ class _AdminProductsScreenState extends State<AdminProductsScreen> {
                         color: const Color(0xFFF0F1F5),
                         borderRadius: BorderRadius.circular(10),
                       ),
-                      child: (_selectedImage != null)
-                          ? Image.file(_selectedImage!, fit: BoxFit.cover)
+                      child: (_productImagePreviewBytes != null)
+                          ? Image.memory(
+                              _productImagePreviewBytes!,
+                              fit: BoxFit.cover,
+                            )
                           : (isEditing && product.imageUrl.isNotEmpty)
-                          ? Image.network(product.imageUrl, fit: BoxFit.cover)
+                          ? _buildStoredProductImage(product.imageUrl)
                           : const Center(child: Icon(Icons.add_a_photo_outlined, size: 40)),
                     ),
                   ),
@@ -169,11 +191,21 @@ class _AdminProductsScreenState extends State<AdminProductsScreen> {
             TextButton(onPressed: () => Navigator.pop(context), child: const Text("Hủy")),
             ElevatedButton(
               onPressed: isSaving ? null : () async {
-                if (dialogCategoryId == null || nameController.text.isEmpty) return;
+                if (dialogCategoryId == null || nameController.text.isEmpty) {
+                  if (!mounted) return;
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Vui lòng chọn danh mục và nhập tên sản phẩm')),
+                  );
+                  return;
+                }
                 setDialogState(() => isSaving = true);
+                final messenger = ScaffoldMessenger.of(context);
                 try {
                   String finalImageUrl = isEditing ? product.imageUrl : '';
-                  if (_selectedImage != null) finalImageUrl = await _fs.uploadImage(_selectedImage!);
+                  if (_pickedProductImage != null) {
+                    finalImageUrl =
+                        await _fs.uploadImageFromXFile(_pickedProductImage!);
+                  }
 
                   Map<String, int> inventory = {for (var s in shoeSizes) s: int.tryParse(sizeControllers[s]!.text) ?? 0};
 
@@ -188,10 +220,37 @@ class _AdminProductsScreenState extends State<AdminProductsScreen> {
                     sizesStock: inventory,
                   );
 
-                  isEditing ? await _fs.updateProduct(p) : await _fs.addProduct(p);
-                  if (mounted) Navigator.pop(context);
+                  if (isEditing) {
+                    await _fs.updateProduct(p);
+                  } else {
+                    await _fs.addProduct(p);
+                  }
+
+                  if (!mounted) return;
+                  Navigator.pop(context);
+                  messenger.showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        isEditing ? 'Đã cập nhật sản phẩm' : 'Đã thêm sản phẩm',
+                      ),
+                      backgroundColor: Colors.green.shade700,
+                    ),
+                  );
                 } catch (e) {
-                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Lỗi: $e")));
+                  final String msg;
+                  if (e is FirebaseException) {
+                    msg = e.message != null && e.message!.isNotEmpty
+                        ? e.message!
+                        : 'Lỗi Firebase (${e.code})';
+                  } else {
+                    msg = e.toString();
+                  }
+                  messenger.showSnackBar(
+                    SnackBar(
+                      content: Text('Không thể lưu: $msg'),
+                      backgroundColor: Colors.red.shade800,
+                    ),
+                  );
                 } finally {
                   setDialogState(() => isSaving = false);
                 }
@@ -346,22 +405,7 @@ class _AdminProductsScreenState extends State<AdminProductsScreen> {
                         children: [
                           ClipRRect(
                             borderRadius: BorderRadius.circular(18),
-                            child: Image.network(
-                              p.imageUrl,
-                              width: 72,
-                              height: 72,
-                              fit: BoxFit.cover,
-                              errorBuilder: (_, __, ___) =>
-                                  Container(
-                                    width: 72,
-                                    height: 72,
-                                    color: const Color(0xFFF0F1F5),
-                                    child: const Icon(
-                                      Icons.image_not_supported_outlined,
-                                      color: Colors.grey,
-                                    ),
-                                  ),
-                            ),
+                            child: _buildProductImageTile(p.imageUrl, size: 72),
                           ),
                           const SizedBox(width: 14),
                           Expanded(
@@ -444,6 +488,63 @@ class _AdminProductsScreenState extends State<AdminProductsScreen> {
           ),
         ],
       ),
+    );
+  }
+
+  /// Form sửa: ảnh đã lưu — URL Storage dùng network, ảnh mẫu trong app dùng asset.
+  Widget _buildStoredProductImage(String url) {
+    const double h = 140;
+    final Widget fallback = SizedBox(
+      height: h,
+      child: const Center(
+        child: Icon(Icons.broken_image_outlined, color: Colors.grey, size: 40),
+      ),
+    );
+    if (url.isEmpty) {
+      return const Center(child: Icon(Icons.add_a_photo_outlined, size: 40));
+    }
+    if (ProductModel.isNetworkImageUrl(url)) {
+      return StorageNetworkImage(
+        url: url,
+        fit: BoxFit.cover,
+        width: double.infinity,
+        height: h,
+        fallback: fallback,
+      );
+    }
+    return Image.asset(
+      ProductModel.normalizeLocalAssetPath(url),
+      fit: BoxFit.cover,
+      width: double.infinity,
+      height: h,
+      errorBuilder: (_, __, ___) => fallback,
+    );
+  }
+
+  /// Danh sách admin: cùng quy tắc với form (network vs asset).
+  Widget _buildProductImageTile(String imageUrl, {double size = 72}) {
+    final Widget fallback = Container(
+      width: size,
+      height: size,
+      color: const Color(0xFFF0F1F5),
+      child: const Icon(Icons.image_not_supported_outlined, color: Colors.grey),
+    );
+    if (imageUrl.isEmpty) return fallback;
+    if (ProductModel.isNetworkImageUrl(imageUrl)) {
+      return StorageNetworkImage(
+        url: imageUrl,
+        width: size,
+        height: size,
+        fit: BoxFit.cover,
+        fallback: fallback,
+      );
+    }
+    return Image.asset(
+      ProductModel.normalizeLocalAssetPath(imageUrl),
+      width: size,
+      height: size,
+      fit: BoxFit.cover,
+      errorBuilder: (_, __, ___) => fallback,
     );
   }
 
