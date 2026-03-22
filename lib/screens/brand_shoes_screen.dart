@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
-import '../data/shoe_data.dart';
-import '../models/shoe_model.dart';
 
+import '../models/product_model.dart';
+import '../services/firestore_service.dart';
+
+/// Danh sách hãng và mẫu lấy từ Firestore (không dùng dữ liệu hard-code).
 class BrandShoesScreen extends StatefulWidget {
   final Function(String name) onShoeSelected;
 
@@ -12,115 +14,102 @@ class BrandShoesScreen extends StatefulWidget {
 }
 
 class _BrandShoesScreenState extends State<BrandShoesScreen> {
-  String _selectedCategory = 'all'; // 'all', 'sneaker', 'boot'
+  final FirestoreService _fs = FirestoreService();
+
+  Map<String, List<ProductModel>> _groupByBrand(List<ProductModel> products) {
+    final map = <String, List<ProductModel>>{};
+    for (final p in products) {
+      final b = p.brand.trim().isEmpty ? 'Khác' : p.brand;
+      map.putIfAbsent(b, () => []).add(p);
+    }
+    for (final list in map.values) {
+      list.sort((a, b) => a.name.compareTo(b.name));
+    }
+    final keys = map.keys.toList()..sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
+    return {for (final k in keys) k: map[k]!};
+  }
 
   @override
   Widget build(BuildContext context) {
-    // 1. Lấy dữ liệu đã được group theo brand và lọc theo category
-    final groupedData = ShoeData.getShoesGroupedByBrand(filterCategory: _selectedCategory);
-    final brands = groupedData.keys.toList();
-
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        title: const Text('Danh mục Hãng & Mẫu giày', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 18)),
+        title: const Text(
+          'Danh mục Hãng & Mẫu giày',
+          style: TextStyle(
+            color: Colors.black,
+            fontWeight: FontWeight.bold,
+            fontSize: 18,
+          ),
+        ),
         backgroundColor: Colors.white,
         elevation: 1,
         iconTheme: const IconThemeData(color: Colors.black),
       ),
-      body: Column(
-        children: [
-          _buildFilterRow(),
-          Expanded(
-            child: ListView.builder(
-              itemCount: brands.length,
-              itemBuilder: (context, index) {
-                final brand = brands[index];
-                final shoes = groupedData[brand] ?? [];
+      body: StreamBuilder<List<ProductModel>>(
+        stream: _fs.getProducts(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          if (snapshot.hasError) {
+            return const Center(child: Text('Không thể tải sản phẩm'));
+          }
+          final grouped = _groupByBrand(snapshot.data ?? []);
+          if (grouped.isEmpty) {
+            return const Center(child: Text('Chưa có sản phẩm trên cửa hàng'));
+          }
+          final brands = grouped.keys.toList();
 
-                return Card(
-                  color: Colors.white,
-                  surfaceTintColor: Colors.transparent,
-                  margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  child: ExpansionTile(
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                    collapsedShape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                    iconColor: Colors.blue,
-                    collapsedIconColor: Colors.grey,
-                    title: Text(
-                      brand,
-                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                    ),
-                    children: shoes.map((shoe) {
-                      return ListTile(
-                        leading: Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            color: Colors.blue.withOpacity(0.1),
-                            shape: BoxShape.circle,
-                          ),
-                          child: Icon(
-                            shoe.category == 'sneaker' ? Icons.directions_run : Icons.hiking,
-                            color: Colors.blue,
-                            size: 20,
-                          ),
-                        ),
-                        title: Text(shoe.name, style: const TextStyle(fontWeight: FontWeight.w500)),
-                        subtitle: Text(shoe.category == 'sneaker' ? 'Sneakers' : 'Boots', style: TextStyle(color: Colors.grey.shade600, fontSize: 13)),
-                        trailing: const Icon(Icons.arrow_forward_ios, size: 14, color: Colors.grey),
-                        onTap: () {
-                          // Bắn event trả về cho CustomerHomeScreen để lọc
-                          widget.onShoeSelected(shoe.name);
-                          Navigator.pop(context); 
-                        },
-                      );
-                    }).toList(),
+          return ListView.builder(
+            padding: const EdgeInsets.only(top: 8, bottom: 16),
+            itemCount: brands.length,
+            itemBuilder: (context, index) {
+              final brand = brands[index];
+              final items = grouped[brand] ?? [];
+
+              return Card(
+                color: Colors.white,
+                surfaceTintColor: Colors.transparent,
+                margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                child: ExpansionTile(
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  collapsedShape:
+                      RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  iconColor: Colors.blue,
+                  collapsedIconColor: Colors.grey,
+                  title: Text(
+                    brand,
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                   ),
-                );
-              },
-            ),
-          ),
-        ],
+                  children: items.map((product) {
+                    return ListTile(
+                      leading: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: Colors.blue.withOpacity(0.1),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(Icons.shopping_bag_outlined, color: Colors.blue, size: 20),
+                      ),
+                      title: Text(product.name, style: const TextStyle(fontWeight: FontWeight.w500)),
+                      subtitle: Text(
+                        product.brand,
+                        style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+                      ),
+                      trailing: const Icon(Icons.arrow_forward_ios, size: 14, color: Colors.grey),
+                      onTap: () {
+                        widget.onShoeSelected(product.name);
+                        Navigator.pop(context);
+                      },
+                    );
+                  }).toList(),
+                ),
+              );
+            },
+          );
+        },
       ),
-    );
-  }
-
-  Widget _buildFilterRow() {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: Row(
-          children: [
-            const Text('Lọc loại:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
-            const SizedBox(width: 12),
-            _buildFilterChip('Tất cả', 'all'),
-            const SizedBox(width: 8),
-            _buildFilterChip('Sneakers', 'sneaker'),
-            const SizedBox(width: 8),
-            _buildFilterChip('Boots', 'boot'),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildFilterChip(String label, String value) {
-    final isSelected = _selectedCategory == value;
-    return ChoiceChip(
-      label: Text(label),
-      selected: isSelected,
-      selectedColor: Colors.blue,
-      backgroundColor: Colors.grey.shade200,
-      labelStyle: TextStyle(
-        color: isSelected ? Colors.white : Colors.black87,
-        fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-      ),
-      side: BorderSide.none,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      onSelected: (selected) {
-        if (selected) setState(() => _selectedCategory = value);
-      },
     );
   }
 }

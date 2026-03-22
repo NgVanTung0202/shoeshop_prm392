@@ -29,18 +29,9 @@ class ProductModel {
 
   factory ProductModel.fromFirestore(String id, Map<String, dynamic> data) {
     int sCount = data['soldCount'] ?? 0;
-    if (sCount == 0) sCount = (id.hashCode.abs() % 500) + 10;
-    
     int rCount = data['reviewCount'] ?? 0;
-    if (rCount == 0) rCount = (id.hashCode.abs() % 200) + 5;
-    
     double ratingValue = (data['rating'] ?? 0).toDouble();
-    if (ratingValue == 0) ratingValue = 4.0 + (id.hashCode.abs() % 10) / 10;
-    
     int disc = data['discountPercent'] ?? 0;
-    if (disc == 0 && id.hashCode.abs() % 5 == 0) {
-      disc = 15 + (id.hashCode.abs() % 5) * 5; 
-    }
 
     final rawImg = data['imageUrl'] ?? data['image_url'];
     String storedUrl = '';
@@ -58,7 +49,7 @@ class ProductModel {
     return ProductModel(
       id: id,
       name: data['name'] ?? '',
-      brand: data['brand'] ?? '',
+      brand: data['brand']?.toString().toUpperCase() ?? 'OTHER',
       price: (data['price'] ?? 0).toDouble(),
       categoryId: data['categoryId'] ?? '',
       imageUrl: resolvedImageUrl,
