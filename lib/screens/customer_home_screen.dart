@@ -34,8 +34,6 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
   String? _avatarUrl;
   String? _displayName;
   String? _selectedCategoryId;
-  String? _selectedCategoryName;
-  String? _selectedBrand;
   String _searchQuery = '';
   int _selectedNavIndex = 0;
   String _selectedSort = 'phobien';
@@ -318,8 +316,6 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
             _buildBannerSlider(),
             const SizedBox(height: 10),
             _buildCategoryList(),
-            const SizedBox(height: 8),
-            _buildBrandList(),
             const SizedBox(height: 10),
             _buildSortDropdown(),
             const SizedBox(height: 10),
@@ -573,7 +569,6 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
       onTap: () {
         setState(() {
           _selectedCategoryId = value;
-          _selectedCategoryName = label == 'All' ? null : label;
         });
       },
       child: Container(
@@ -605,61 +600,6 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
       Colors.teal, Colors.indigo, Colors.pink,
     ];
     return palette[label.hashCode.abs() % palette.length];
-  }
-
-  Widget _buildBrandList() {
-    return SizedBox(
-      height: 45,
-      child: FutureBuilder<List<String>>(
-        future: _fs.getAllBrands(),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator(strokeWidth: 2));
-          }
-          final brands = List<String>.from(snapshot.data ?? [])..sort();
-          return ListView(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            children: [
-              _buildBrandChip(label: 'All Brands', value: null),
-              ...brands.map((b) => _buildBrandChip(label: b, value: b)),
-            ],
-          );
-        },
-      ),
-    );
-  }
-
-  Widget _buildBrandChip({required String label, String? value}) {
-    final bool isSelected = _selectedBrand == value;
-    const chipColor = Colors.orange;
-
-    return GestureDetector(
-      onTap: () {
-        setState(() {
-          _selectedBrand = value;
-        });
-      },
-      child: Container(
-        margin: const EdgeInsets.only(right: 12),
-        padding: const EdgeInsets.symmetric(horizontal: 20),
-        decoration: BoxDecoration(
-          color: isSelected ? chipColor : chipColor.withOpacity(0.12),
-          borderRadius: BorderRadius.circular(25),
-          border: Border.all(
-            color: isSelected ? chipColor : chipColor.withOpacity(0.35),
-          ),
-        ),
-        alignment: Alignment.center,
-        child: Text(
-          label,
-          style: TextStyle(
-            color: isSelected ? Colors.white : chipColor,
-            fontWeight: FontWeight.w500,
-          ),
-        ),
-      ),
-    );
   }
 
   Widget _buildSortDropdown() {
@@ -742,20 +682,13 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
               List<ProductModel>.from(snapshot.data ?? []);
 
           final List<ProductModel> filteredProducts = products.where((product) {
-            bool matchCategory = true;
-            if (_selectedCategoryId != null) {
-              final catNameLower = _selectedCategoryName?.toLowerCase() ?? "";
-              final isMajorBrand = ['nike', 'adidas', 'puma', 'vans', 'converse', 'boot'].contains(catNameLower);
-              bool nameOrBrandMatch = product.brand.toLowerCase().contains(catNameLower) || product.name.toLowerCase().contains(catNameLower);
-              
-              matchCategory = isMajorBrand ? nameOrBrandMatch : (product.categoryId == _selectedCategoryId || nameOrBrandMatch);
-            }
-            final matchBrand = _selectedBrand == null ||
-                product.brand.toUpperCase() == _selectedBrand!.toUpperCase();
+            // Chỉ theo categoryId khớp document category trên Firestore (chip lưu category.id).
+            final bool matchCategory = _selectedCategoryId == null ||
+                product.categoryId == _selectedCategoryId;
             final matchSearch = _searchQuery.isEmpty ||
                 product.name.toLowerCase().contains(_searchQuery) ||
                 product.brand.toLowerCase().contains(_searchQuery);
-            return matchCategory && matchBrand && matchSearch;
+            return matchCategory && matchSearch;
           }).toList();
 
           if (_selectedSort == 'giathap') filteredProducts.sort((a, b) => a.price.compareTo(b.price));

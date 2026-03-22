@@ -521,7 +521,6 @@ class _AdminProductsScreenState extends State<AdminProductsScreen> {
     );
   }
 
-  /// Danh sách admin: cùng quy tắc với form (network vs asset).
   Widget _buildProductImageTile(String imageUrl, {double size = 72}) {
     final Widget fallback = Container(
       width: size,
