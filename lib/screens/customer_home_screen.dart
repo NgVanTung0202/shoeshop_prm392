@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
@@ -14,7 +16,6 @@ import 'product_detail_screen.dart';
 import 'profile_screen.dart';
 import '../widgets/storage_network_image.dart';
 import 'brand_shoes_screen.dart';
-import '../data/shoe_data.dart';
 import 'order_history_screen.dart';
 
 class CustomerHomeScreen extends StatefulWidget {
@@ -34,10 +35,15 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
   String? _displayName;
   String? _selectedCategoryId;
   String? _selectedCategoryName;
+  String? _selectedBrand;
   String _searchQuery = '';
   int _selectedNavIndex = 0;
   String _selectedSort = 'phobien';
   final Set<String> _favoriteProductIds = <String>{};
+
+  int _currentBannerIndex = 0;
+  final PageController _pageController = PageController();
+  Timer? _bannerTimer;
 
   User? get currentUser => FirebaseAuth.instance.currentUser;
 
@@ -45,6 +51,25 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
   void initState() {
     super.initState();
     _loadUserInfo();
+    _startBannerTimer();
+  }
+
+  void _startBannerTimer() {
+    _bannerTimer = Timer.periodic(const Duration(seconds: 3), (timer) {
+      if (!mounted) return;
+      if (_pageController.hasClients) {
+        final nextPage = _currentBannerIndex + 1;
+        if (nextPage >= 5) {
+          _pageController.jumpToPage(0);
+        } else {
+          _pageController.animateToPage(
+            nextPage,
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeInOut,
+          );
+        }
+      }
+    });
   }
 
   Future<void> _loadUserInfo() async {
@@ -71,6 +96,8 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
 
   @override
   void dispose() {
+    _bannerTimer?.cancel();
+    _pageController.dispose();
     _searchController.dispose();
     super.dispose();
   }
@@ -288,7 +315,11 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
         child: Column(
           children: [
             _buildSearchBar(),
+            _buildBannerSlider(),
+            const SizedBox(height: 10),
             _buildCategoryList(),
+            const SizedBox(height: 8),
+            _buildBrandList(),
             const SizedBox(height: 10),
             _buildSortDropdown(),
             const SizedBox(height: 10),
@@ -431,6 +462,40 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
     );
   }
 
+  Widget _buildBannerSlider() {
+    return SizedBox(
+      height: 150,
+      width: double.infinity,
+      child: PageView.builder(
+        controller: _pageController,
+        onPageChanged: (index) {
+          setState(() => _currentBannerIndex = index);
+        },
+        itemCount: 5,
+        itemBuilder: (context, index) {
+          final bannerNumber = index + 1;
+          return Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(15),
+              child: Image.asset(
+                'assets/banner/banner$bannerNumber.png',
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) {
+                  return Container(
+                    color: Colors.blue.shade100,
+                    alignment: Alignment.center,
+                    child: const Icon(Icons.image, size: 50, color: Colors.blue),
+                  );
+                },
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
   Widget _buildSearchBar() {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
@@ -542,6 +607,61 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
     return palette[label.hashCode.abs() % palette.length];
   }
 
+  Widget _buildBrandList() {
+    return SizedBox(
+      height: 45,
+      child: FutureBuilder<List<String>>(
+        future: _fs.getAllBrands(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator(strokeWidth: 2));
+          }
+          final brands = List<String>.from(snapshot.data ?? [])..sort();
+          return ListView(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            children: [
+              _buildBrandChip(label: 'All Brands', value: null),
+              ...brands.map((b) => _buildBrandChip(label: b, value: b)),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildBrandChip({required String label, String? value}) {
+    final bool isSelected = _selectedBrand == value;
+    const chipColor = Colors.orange;
+
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          _selectedBrand = value;
+        });
+      },
+      child: Container(
+        margin: const EdgeInsets.only(right: 12),
+        padding: const EdgeInsets.symmetric(horizontal: 20),
+        decoration: BoxDecoration(
+          color: isSelected ? chipColor : chipColor.withOpacity(0.12),
+          borderRadius: BorderRadius.circular(25),
+          border: Border.all(
+            color: isSelected ? chipColor : chipColor.withOpacity(0.35),
+          ),
+        ),
+        alignment: Alignment.center,
+        child: Text(
+          label,
+          style: TextStyle(
+            color: isSelected ? Colors.white : chipColor,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildSortDropdown() {
     final Map<String, String> sortOptions = {
       'phobien': 'Phổ biến',
@@ -618,27 +738,8 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
           }
           if (snapshot.hasError) return const Center(child: Text('Không thể tải sản phẩm'));
 
-          final List<ProductModel> products = List<ProductModel>.from(snapshot.data ?? []);
-          
-          final presetProducts = ShoeData.allShoes.map((shoe) {
-            final disc = shoe.id.hashCode.abs() % 5 == 0 ? 15 + (shoe.id.hashCode.abs() % 4) * 5 : 0;
-            return ProductModel(
-              id: 'preset_${shoe.id}',
-              name: shoe.name,
-              brand: shoe.brand,
-              price: 1500000.0 + (shoe.id.hashCode.abs() % 1000000),
-              categoryId: 'preset_cat',
-              imageUrl: ProductModel.placeholderImageAsset,
-              description: 'Sản phẩm ${shoe.name} chính hãng từ ${shoe.brand}.',
-              sizesStock: {'39': 10, '40': 15, '41': 20},
-              discountPercent: disc,
-              soldCount: shoe.id.hashCode.abs() % 300,
-              rating: 4.0 + (shoe.id.hashCode.abs() % 10) / 10,
-              reviewCount: (shoe.id.hashCode.abs() % 100) + 5,
-            );
-          }).toList();
-          
-          products.addAll(presetProducts);
+          final List<ProductModel> products =
+              List<ProductModel>.from(snapshot.data ?? []);
 
           final List<ProductModel> filteredProducts = products.where((product) {
             bool matchCategory = true;
@@ -649,8 +750,12 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
               
               matchCategory = isMajorBrand ? nameOrBrandMatch : (product.categoryId == _selectedCategoryId || nameOrBrandMatch);
             }
-            final matchSearch = product.name.toLowerCase().contains(_searchQuery) || product.brand.toLowerCase().contains(_searchQuery);
-            return matchCategory && matchSearch;
+            final matchBrand = _selectedBrand == null ||
+                product.brand.toUpperCase() == _selectedBrand!.toUpperCase();
+            final matchSearch = _searchQuery.isEmpty ||
+                product.name.toLowerCase().contains(_searchQuery) ||
+                product.brand.toLowerCase().contains(_searchQuery);
+            return matchCategory && matchBrand && matchSearch;
           }).toList();
 
           if (_selectedSort == 'giathap') filteredProducts.sort((a, b) => a.price.compareTo(b.price));
@@ -739,8 +844,23 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
                           ),
                           InkWell(
                             onTap: () {
-                              if (product.sizesStock.isEmpty) return;
-                              final size = product.sizesStock.entries.firstWhere((e) => e.value > 0, orElse: () => product.sizesStock.entries.first).key.toString();
+                              if (product.getTotalStock() <= 0) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text(
+                                      'Sản phẩm đã hết hàng, chuyển đến trang chi tiết...',
+                                    ),
+                                  ),
+                                );
+                                _openProductDetail(product);
+                                return;
+                              }
+                              final size = product.sizesStock.entries
+                                  .firstWhere((e) => e.value > 0,
+                                      orElse: () =>
+                                          product.sizesStock.entries.first)
+                                  .key
+                                  .toString();
                               _cartService.addItem(product, size);
                               setState(() {});
                               _showTopCartNotice('Đã thêm sản phẩm vào giỏ hàng');

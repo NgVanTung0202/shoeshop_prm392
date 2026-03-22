@@ -272,6 +272,24 @@ class FirestoreService {
     });
   }
 
+  Stream<List<ProductModel>> getProductsByCategory(String categoryId) {
+    return _db.collection('products')
+        .where('categoryId', isEqualTo: categoryId)
+        .snapshots()
+        .map((snap) => snap.docs.map((doc) => ProductModel.fromFirestore(doc.id, doc.data())).toList());
+  }
+
+  Future<List<String>> getAllBrands() async {
+    final snapshot = await _db.collection('products').get();
+    final Set<String> brands = {};
+    for (var doc in snapshot.docs) {
+      if (doc.data()['brand'] != null && doc.data()['brand'].toString().trim().isNotEmpty) {
+        brands.add(doc.data()['brand'].toString().trim().toUpperCase());
+      }
+    }
+    return brands.toList();
+  }
+
   Future<void> addProduct(ProductModel product) async {
     await _db.collection("products").add(product.toMap());
   }
@@ -419,10 +437,16 @@ class FirestoreService {
         updatedSizesStock[item.product.id] = sizesStock;
       }
 
-      // 3. Apply deductions
+      // 3. Apply deductions and increase sold count
       updatedSizesStock.forEach((productId, newSizesStock) {
+        // Calculate total quantity of this product ordered in this order
+        int totalQuantityOrdered = cartItems
+            .where((item) => item.product.id == productId)
+            .fold(0, (sum, item) => sum + item.quantity);
+
         transaction.update(_db.collection('products').doc(productId), {
           'sizes_stock': newSizesStock,
+          'soldCount': FieldValue.increment(totalQuantityOrdered), // Fix: actually increase soldCount!
         });
       });
 
@@ -432,9 +456,9 @@ class FirestoreService {
         'receiverName': receiverName,
         'phone': phone,
         'address': address,
-        'paymentMethod': paymentMethod,
+        'paymentMethod': paymentMethod, // COD or ONLINE
         'totalPrice': totalPrice,
-        'status': 'Chờ xác nhận',
+        'status': paymentMethod == 'ONLINE' ? 'Đã thanh toán' : 'Chờ xác nhận', // Fix: differentiate status
         'createdAt': FieldValue.serverTimestamp(),
         'updatedAt': FieldValue.serverTimestamp(),
       });

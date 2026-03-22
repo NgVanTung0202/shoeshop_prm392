@@ -7,12 +7,17 @@ import 'screens/login_screen.dart';
 import 'screens/admin_dashboard_screen.dart';
 import 'screens/customer_home_screen.dart';
 import 'screens/admin_orders_screen.dart';
+import 'scripts/seeder.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
+  
+  // Tự động Seed Database từ Assets nếu rỗng
+  Seeder.seedDatabase();
+  
   runApp(const MyApp());
 }
 

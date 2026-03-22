@@ -46,6 +46,7 @@ flutter:
   uses-material-design: true
 
   assets:
+    - assets/banner/
     - app_images/nike/
     - app_images/adidas/
     - app_images/puma/
