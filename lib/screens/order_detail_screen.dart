@@ -189,11 +189,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                         String imageUrl = itemData['imageUrl']?.toString() ?? '';
 
                         if (imageUrl.isEmpty) {
-                          imageUrl = ProductModel.getLocalImage(
-                            itemData['productName']?.toString() ?? '',
-                            '',
-                            itemData['productId']?.toString() ?? '',
-                          );
+                          imageUrl = ProductModel.placeholderImageAsset;
                         } else if (!imageUrl.startsWith('http')) {
                           imageUrl =
                               ProductModel.normalizeLocalAssetPath(imageUrl);

@@ -12,6 +12,7 @@ import 'cart_screen.dart';
 import 'change_password_screen.dart';
 import 'product_detail_screen.dart';
 import 'profile_screen.dart';
+import '../widgets/storage_network_image.dart';
 import 'brand_shoes_screen.dart';
 import '../data/shoe_data.dart';
 import 'order_history_screen.dart';
@@ -627,7 +628,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
               brand: shoe.brand,
               price: 1500000.0 + (shoe.id.hashCode.abs() % 1000000),
               categoryId: 'preset_cat',
-              imageUrl: ProductModel.getLocalImage(shoe.name, shoe.brand, 'preset_${shoe.id}'),
+              imageUrl: ProductModel.placeholderImageAsset,
               description: 'Sản phẩm ${shoe.name} chính hãng từ ${shoe.brand}.',
               sizesStock: {'39': 10, '40': 15, '41': 20},
               discountPercent: disc,
@@ -696,8 +697,16 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
                     decoration: BoxDecoration(color: Colors.blue.shade50, borderRadius: BorderRadius.circular(14)),
                     child: Hero(
                       tag: product.id,
-                      child: product.imageUrl.startsWith('http')
-                          ? Image.network(product.imageUrl, fit: BoxFit.contain, errorBuilder: (_, __, ___) => const Icon(Icons.image_not_supported_outlined))
+                      child: ProductModel.isNetworkImageUrl(product.imageUrl)
+                          ? SizedBox.expand(
+                              child: StorageNetworkImage(
+                                url: product.imageUrl,
+                                fit: BoxFit.contain,
+                                fallback: const Center(
+                                  child: Icon(Icons.image_not_supported_outlined),
+                                ),
+                              ),
+                            )
                           : Image.asset(
                               ProductModel.normalizeLocalAssetPath(
                                   product.imageUrl),

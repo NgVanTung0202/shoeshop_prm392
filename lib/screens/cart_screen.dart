@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../models/product_model.dart';
+import '../widgets/storage_network_image.dart';
 import '../services/cart_service.dart';
 import 'checkout_screen.dart';
 import '../utils/format_utils.dart';
@@ -190,18 +191,22 @@ class _CartScreenState extends State<CartScreen> {
                               ),
                               ClipRRect(
                                 borderRadius: BorderRadius.circular(10),
-                                child: item.product.imageUrl.startsWith('http')
-                                    ? Image.network(
-                                        item.product.imageUrl,
+                                child: ProductModel.isNetworkImageUrl(
+                                        item.product.imageUrl)
+                                    ? StorageNetworkImage(
+                                        url: item.product.imageUrl,
                                         width: 64,
                                         height: 64,
                                         fit: BoxFit.cover,
-                                        errorBuilder: (_, __, ___) => Container(
+                                        fallback: Container(
                                           width: 64,
                                           height: 64,
                                           color: Colors.blue.shade50,
                                           alignment: Alignment.center,
-                                          child: const Icon(Icons.image_not_supported_outlined, color: Colors.grey),
+                                          child: const Icon(
+                                            Icons.image_not_supported_outlined,
+                                            color: Colors.grey,
+                                          ),
                                         ),
                                       )
                                     : Image.asset(
