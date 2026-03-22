@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-import '../screens/admin_home_screen.dart';
 import '../services/firestore_service.dart';
 import '../services/auth_service.dart';
 import '../widgets/admin_drawer.dart';
@@ -339,11 +338,12 @@ class AdminUsersScreen extends StatelessWidget {
       drawer: const AdminDrawer(selected: AdminMenuItem.users),
       appBar: AppBar(
         title: const Text("Quản lý người dùng"),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(builder: (_) => const AdminHomeScreen()),
+        automaticallyImplyLeading: false,
+        leading: Builder(
+          builder: (ctx) => IconButton(
+            icon: const Icon(Icons.menu),
+            onPressed: () => Scaffold.of(ctx).openDrawer(),
+            tooltip: 'Menu',
           ),
         ),
       ),

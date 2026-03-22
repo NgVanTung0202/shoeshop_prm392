@@ -1,24 +1,26 @@
 class CategoryModel {
   String id;
   String name;
-  String imageUrl;
+
+  /// Đánh dấu xóa mềm — không hiển thị trong app; dữ liệu vẫn trên Firestore.
+  bool isDeleted;
 
   CategoryModel({
     required this.id,
     required this.name,
-    this.imageUrl = '',
+    this.isDeleted = false,
   });
 
   Map<String, dynamic> toMap() => {
         'name': name,
-        'imageUrl': imageUrl,
+        'isDeleted': isDeleted,
       };
 
   factory CategoryModel.fromDoc(String id, Map<String, dynamic> data) {
     return CategoryModel(
       id: id,
       name: data['name'] ?? '',
-      imageUrl: data['imageUrl'] ?? '',
+      isDeleted: data['isDeleted'] == true,
     );
   }
 }
