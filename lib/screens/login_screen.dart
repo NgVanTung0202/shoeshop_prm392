@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../services/auth_service.dart';
 import 'register_screen.dart';
+import 'admin_products_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -98,6 +99,11 @@ class _LoginScreenState extends State<LoginScreen> {
 
         if (role == "admin") {
           Navigator.pushReplacementNamed(context, "/admin");
+        } else if (role == "staff") {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (_) => const AdminProductsScreen()),
+          );
         } else {
           Navigator.pushReplacementNamed(context, "/home");
         }

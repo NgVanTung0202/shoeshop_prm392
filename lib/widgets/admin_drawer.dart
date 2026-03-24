@@ -4,6 +4,8 @@ import '../screens/admin_products_screen.dart';
 import '../screens/admin_category_screen.dart';
 import '../screens/admin_users_screen.dart';
 import '../services/auth_service.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 enum AdminMenuItem { dashboard, products, categories, users, orders, other }
 
@@ -12,135 +14,153 @@ class AdminDrawer extends StatelessWidget {
 
   const AdminDrawer({super.key, required this.selected});
 
+  Future<String> _getUserRole() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      final doc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
+      return doc.data()?['role'] ?? 'staff';
+    }
+    return 'staff';
+  }
+
   @override
   Widget build(BuildContext context) {
     return Drawer(
-      child: Container(
-        color: Colors.white,
-        child: Column(
-          children: [
-            DrawerHeader(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [Colors.blue.shade700, Colors.blue.shade400],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
+      child: FutureBuilder<String>(
+        future: _getUserRole(),
+        builder: (context, snapshot) {
+          final role = snapshot.data ?? 'staff';
+          return Container(
+            color: Colors.white,
+            child: Column(
+              children: [
+                DrawerHeader(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [Colors.blue.shade700, Colors.blue.shade400],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                  ),
+                  child: const Align(
+                    alignment: Alignment.bottomLeft,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        Text(
+                          "Admin Panel",
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 22,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        SizedBox(height: 4),
+                        Text(
+                          "Quản lý Shoe Shop",
+                          style: TextStyle(color: Colors.white70, fontSize: 14),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
-              ),
-              child: const Align(
-                alignment: Alignment.bottomLeft,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    Text(
-                      "Admin Panel",
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 22,
-                        fontWeight: FontWeight.bold,
+                Expanded(
+                  child: ListView(
+                    padding: EdgeInsets.zero,
+                    children: [
+                      if (role == 'admin')
+                        _buildMenuItem(
+                          context,
+                          icon: Icons.dashboard,
+                          title: "Dashboard",
+                          item: AdminMenuItem.dashboard,
+                          onTap: () {
+                            if (selected != AdminMenuItem.dashboard) {
+                              Navigator.pushReplacement(
+                                context,
+                                MaterialPageRoute(builder: (_) => AdminDashboardScreen()),
+                              );
+                            }
+                          },
+                        ),
+                      _buildMenuItem(
+                        context,
+                        icon: Icons.inventory_2,
+                        title: "Sản phẩm",
+                        item: AdminMenuItem.products,
+                        onTap: () {
+                          if (selected != AdminMenuItem.products) {
+                            Navigator.pushReplacement(
+                              context,
+                              MaterialPageRoute(builder: (_) => const AdminProductsScreen()),
+                            );
+                          }
+                        },
                       ),
-                    ),
-                    SizedBox(height: 4),
-                    Text(
-                      "Quản lý Shoe Shop",
-                      style: TextStyle(color: Colors.white70, fontSize: 14),
-                    ),
-                  ],
+                      if (role == 'admin')
+                        _buildMenuItem(
+                          context,
+                          icon: Icons.category,
+                          title: "Danh mục",
+                          item: AdminMenuItem.categories,
+                          onTap: () {
+                            if (selected != AdminMenuItem.categories) {
+                              Navigator.pushReplacement(
+                                context,
+                                MaterialPageRoute(builder: (_) => const AdminCategoryScreen()),
+                              );
+                            }
+                          },
+                        ),
+                      if (role == 'admin')
+                        _buildMenuItem(
+                          context,
+                          icon: Icons.people,
+                          title: "Người dùng",
+                          item: AdminMenuItem.users,
+                          onTap: () {
+                            if (selected != AdminMenuItem.users) {
+                              Navigator.pushReplacement(
+                                context,
+                                MaterialPageRoute(builder: (_) => AdminUsersScreen()),
+                              );
+                            }
+                          },
+                        ),
+                      _buildMenuItem(
+                        context,
+                        icon: Icons.shopping_cart,
+                        title: "Đơn hàng",
+                        item: AdminMenuItem.orders,
+                        onTap: () {
+                          if (selected != AdminMenuItem.orders) {
+                            Navigator.pushReplacementNamed(context, '/admin_orders');
+                          }
+                        },
+                      ),
+                      const Divider(),
+                      _buildMenuItem(
+                        context,
+                        icon: Icons.logout,
+                        title: "Đăng xuất",
+                        item: AdminMenuItem.other,
+                        iconColor: Colors.red,
+                        textColor: Colors.red,
+                        onTap: () async {
+                          await AuthService().logout();
+                          if (context.mounted) {
+                            Navigator.pushReplacementNamed(context, '/login');
+                          }
+                        },
+                      ),
+                    ],
+                  ),
                 ),
-              ),
+              ],
             ),
-            Expanded(
-              child: ListView(
-                padding: EdgeInsets.zero,
-                children: [
-                  _buildMenuItem(
-                    context,
-                    icon: Icons.dashboard,
-                    title: "Dashboard",
-                    item: AdminMenuItem.dashboard,
-                    onTap: () {
-                      if (selected != AdminMenuItem.dashboard) {
-                        Navigator.pushReplacement(
-                          context,
-                          MaterialPageRoute(builder: (_) => AdminDashboardScreen()),
-                        );
-                      }
-                    },
-                  ),
-                  _buildMenuItem(
-                    context,
-                    icon: Icons.inventory_2,
-                    title: "Sản phẩm",
-                    item: AdminMenuItem.products,
-                    onTap: () {
-                      if (selected != AdminMenuItem.products) {
-                        Navigator.pushReplacement(
-                          context,
-                          MaterialPageRoute(builder: (_) => const AdminProductsScreen()),
-                        );
-                      }
-                    },
-                  ),
-                  _buildMenuItem(
-                    context,
-                    icon: Icons.category,
-                    title: "Danh mục",
-                    item: AdminMenuItem.categories,
-                    onTap: () {
-                      if (selected != AdminMenuItem.categories) {
-                        Navigator.pushReplacement(
-                          context,
-                          MaterialPageRoute(builder: (_) => const AdminCategoryScreen()),
-                        );
-                      }
-                    },
-                  ),
-                  _buildMenuItem(
-                    context,
-                    icon: Icons.people,
-                    title: "Người dùng",
-                    item: AdminMenuItem.users,
-                    onTap: () {
-                      if (selected != AdminMenuItem.users) {
-                        Navigator.pushReplacement(
-                          context,
-                          MaterialPageRoute(builder: (_) => AdminUsersScreen()),
-                        );
-                      }
-                    },
-                  ),
-                  _buildMenuItem(
-                    context,
-                    icon: Icons.shopping_cart,
-                    title: "Đơn hàng",
-                    item: AdminMenuItem.orders,
-                    onTap: () {
-                      if (selected != AdminMenuItem.orders) {
-                        Navigator.pushReplacementNamed(context, '/admin_orders');
-                      }
-                    },
-                  ),
-                  const Divider(),
-                  _buildMenuItem(
-                    context,
-                    icon: Icons.logout,
-                    title: "Đăng xuất",
-                    item: AdminMenuItem.other,
-                    iconColor: Colors.red,
-                    textColor: Colors.red,
-                    onTap: () async {
-                      await AuthService().logout();
-                      if (context.mounted) {
-                        Navigator.pushReplacementNamed(context, '/login');
-                      }
-                    },
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
+          );
+        },
       ),
     );
   }
