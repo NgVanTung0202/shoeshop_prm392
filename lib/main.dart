@@ -7,6 +7,7 @@ import 'screens/login_screen.dart';
 import 'screens/admin_dashboard_screen.dart';
 import 'screens/customer_home_screen.dart';
 import 'screens/admin_orders_screen.dart';
+import 'screens/forgot_password_screen.dart';
 import 'scripts/seeder.dart';
 
 void main() async {
@@ -46,6 +47,7 @@ class MyApp extends StatelessWidget {
       // Định nghĩa các tuyến đường (routes) để dễ dàng chuyển màn hình
       routes: {
         '/login': (context) => const LoginScreen(),
+        '/forgot-password': (context) => const ForgotPasswordScreen(),
         '/admin': (context) => AdminDashboardScreen(),
         '/home': (context) => const CustomerHomeScreen(),
         '/admin_orders': (context) => const AdminOrdersScreen(),

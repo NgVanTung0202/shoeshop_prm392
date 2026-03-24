@@ -105,10 +105,46 @@ class AuthService {
       password: password,
     );
 
+    // Kiểm tra user có active không (chưa bị xóa)
+    if (credential.user != null) {
+      try {
+        final userDoc = await _db
+            .collection("users")
+            .doc(credential.user!.uid)
+            .get();
+
+        if (userDoc.exists) {
+          final isActive = userDoc.data()?["isActive"] ?? true;
+
+          if (!isActive) {
+            await _auth.signOut();
+            throw Exception(
+              "Tài khoản này đã bị vô hiệu hóa. Vui lòng liên hệ admin.",
+            );
+          }
+        }
+      } catch (e) {
+        if (e.toString().contains("vô hiệu hóa")) {
+          rethrow;
+        }
+        // Nếu document không tồn tại, tạo mới (cho Firebase Auth user cũ)
+        await _db.collection("users").doc(credential.user!.uid).set({
+          "email": credential.user!.email,
+          "isActive": true,
+          "createdAt": Timestamp.now(),
+        }, SetOptions(merge: true));
+      }
+    }
+
     return credential.user;
   }
 
   Future<void> logout() async {
     await _auth.signOut();
+  }
+
+  /// Gửi email đặt lại mật khẩu
+  Future<void> sendPasswordResetEmail(String email) async {
+    await _auth.sendPasswordResetEmail(email: email);
   }
 }

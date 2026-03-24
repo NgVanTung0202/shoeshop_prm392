@@ -424,7 +424,10 @@ class AdminUsersScreen extends StatelessWidget {
                   leading: CircleAvatar(
                     backgroundColor: _roleColor(role).withValues(alpha: 0.15),
                     child: Text(
-                      (name.isNotEmpty ? name[0] : email[0]).toUpperCase(),
+                      (name.isNotEmpty
+                              ? name[0]
+                              : (email.isNotEmpty ? email[0] : '?'))
+                          .toUpperCase(),
                       style: TextStyle(
                         color: _roleColor(role),
                         fontWeight: FontWeight.bold,
