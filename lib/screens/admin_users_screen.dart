@@ -316,12 +316,26 @@ class AdminUsersScreen extends StatelessWidget {
               ),
               ElevatedButton(
                 style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-                onPressed: () {
-                  _fs.deleteUser(uid);
-                  Navigator.pop(ctx);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text("Đã xóa tài khoản")),
-                  );
+                onPressed: () async {
+                  try {
+                    await _fs.deleteUser(uid);
+                    if (!ctx.mounted) return;
+                    Navigator.pop(ctx);
+                    if (!context.mounted) return;
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text("Đã xóa tài khoản")),
+                    );
+                  } catch (e) {
+                    if (!ctx.mounted) return;
+                    Navigator.pop(ctx);
+                    if (!context.mounted) return;
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text("Lỗi: $e"),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                  }
                 },
                 child: const Text("Xóa", style: TextStyle(color: Colors.white)),
               ),

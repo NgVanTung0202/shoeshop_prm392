@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:file_selector/file_selector.dart';
+import 'dart:typed_data';
 
 import '../services/firestore_service.dart';
 
@@ -154,37 +155,54 @@ class _ProfileScreenState extends State<ProfileScreen> {
   // ─── Avatar widget ────────────────────────────────────────────────────────
   Widget _buildAvatar() {
     return Center(
-      child: Stack(
+      child: Column(
         children: [
-          // Dùng UniqueKey để force rebuild khi ảnh mới được upload
-          CircleAvatar(
-            key: _avatarKey,
-            radius: 56,
-            backgroundColor: Colors.blue.shade100,
-            backgroundImage: _pickedBytes != null
-                ? MemoryImage(_pickedBytes!) as ImageProvider
-                : (_existingAvatarUrl != null && _existingAvatarUrl!.isNotEmpty)
-                    ? NetworkImage(_existingAvatarUrl!)
-                    : null,
-            child: (_pickedBytes == null &&
-                    (_existingAvatarUrl == null ||
-                        _existingAvatarUrl!.isEmpty))
-                ? const Icon(Icons.person, size: 56, color: Colors.blue)
-                : null,
+          Container(
+            padding: const EdgeInsets.all(4),
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: LinearGradient(
+                colors: [Colors.blue.shade400, Colors.blue.shade600],
+              ),
+            ),
+            child: CircleAvatar(
+              key: _avatarKey,
+              radius: 60,
+              backgroundColor: Colors.blue.shade100,
+              backgroundImage: _pickedBytes != null
+                  ? MemoryImage(_pickedBytes!) as ImageProvider
+                  : (_existingAvatarUrl != null && _existingAvatarUrl!.isNotEmpty)
+                      ? NetworkImage(_existingAvatarUrl!)
+                      : null,
+              child: (_pickedBytes == null &&
+                      (_existingAvatarUrl == null ||
+                          _existingAvatarUrl!.isEmpty))
+                  ? const Icon(Icons.person, size: 60, color: Colors.blue)
+                  : null,
+            ),
           ),
-          Positioned(
-            bottom: 0,
-            right: 0,
-            child: GestureDetector(
-              onTap: loading ? null : _pickAvatar,
-              child: Container(
-                padding: const EdgeInsets.all(6),
-                decoration: const BoxDecoration(
-                  color: Colors.blue,
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(Icons.camera_alt,
-                    size: 18, color: Colors.white),
+          const SizedBox(height: 16),
+          GestureDetector(
+            onTap: loading ? null : _pickAvatar,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              decoration: BoxDecoration(
+                color: Colors.blue,
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.camera_alt, size: 18, color: Colors.white),
+                  const SizedBox(width: 8),
+                  Text(
+                    loading ? "Đang tải..." : "Đổi ảnh đại diện",
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
               ),
             ),
           ),
@@ -199,53 +217,129 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text("Thông tin cá nhân"),
+        elevation: 0,
+        centerTitle: true,
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          children: [
-            const SizedBox(height: 8),
-            _buildAvatar(),
-            const SizedBox(height: 8),
-            TextButton.icon(
-              onPressed: loading ? null : _pickAvatar,
-              icon: const Icon(Icons.photo_library, size: 18),
-              label: const Text("Đổi ảnh đại diện"),
-            ),
-            const SizedBox(height: 24),
-            TextField(
-              controller: _nameController,
-              decoration: const InputDecoration(
-                labelText: "Họ và tên",
-                border: OutlineInputBorder(),
-                prefixIcon: Icon(Icons.person_outline),
-              ),
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: _phoneController,
-              keyboardType: TextInputType.phone,
-              decoration: const InputDecoration(
-                labelText: "Số điện thoại",
-                border: OutlineInputBorder(),
-                prefixIcon: Icon(Icons.phone_outlined),
-              ),
-            ),
-            const SizedBox(height: 32),
-            SizedBox(
-              width: double.infinity,
-              height: 50,
-              child: ElevatedButton(
-                onPressed: loading ? null : _updateProfile,
-                child: loading
-                    ? const CircularProgressIndicator(color: Colors.white)
-                    : const Text(
-                        "Lưu thay đổi",
-                        style: TextStyle(fontSize: 16),
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [Colors.blue.shade50, Colors.white],
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+          ),
+        ),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            children: [
+              const SizedBox(height: 12),
+              _buildAvatar(),
+              const SizedBox(height: 32),
+              
+              /// Form Card
+              Card(
+                elevation: 4,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    children: [
+                      TextField(
+                        controller: _nameController,
+                        enabled: !loading,
+                        decoration: InputDecoration(
+                          labelText: "Họ và tên",
+                          prefixIcon: const Icon(Icons.person_outline, color: Colors.blue),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(color: Colors.blue.shade200),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: const BorderSide(color: Colors.blue, width: 2),
+                          ),
+                          filled: true,
+                          fillColor: Colors.blue.shade50,
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                        ),
                       ),
+                      const SizedBox(height: 16),
+                      TextField(
+                        controller: _phoneController,
+                        enabled: !loading,
+                        keyboardType: TextInputType.phone,
+                        decoration: InputDecoration(
+                          labelText: "Số điện thoại",
+                          prefixIcon: const Icon(Icons.phone_outlined, color: Colors.blue),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(color: Colors.blue.shade200),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: const BorderSide(color: Colors.blue, width: 2),
+                          ),
+                          filled: true,
+                          fillColor: Colors.blue.shade50,
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ),
-            ),
-          ],
+              
+              const SizedBox(height: 28),
+              
+              /// Save Button
+              SizedBox(
+                width: double.infinity,
+                height: 50,
+                child: ElevatedButton(
+                  onPressed: loading ? null : _updateProfile,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.blue,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    elevation: 3,
+                  ),
+                  child: loading
+                      ? const SizedBox(
+                          width: 24,
+                          height: 24,
+                          child: CircularProgressIndicator(
+                            color: Colors.white,
+                            strokeWidth: 2,
+                          ),
+                        )
+                      : const Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.save_outlined, size: 20),
+                            SizedBox(width: 8),
+                            Text(
+                              "Lưu thay đổi",
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                ),
+              ),
+              const SizedBox(height: 20),
+            ],
+          ),
         ),
       ),
     );
