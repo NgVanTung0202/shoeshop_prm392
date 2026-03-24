@@ -442,7 +442,7 @@ class FirestoreService {
         // Calculate total quantity of this product ordered in this order
         int totalQuantityOrdered = cartItems
             .where((item) => item.product.id == productId)
-            .fold(0, (sum, item) => sum + item.quantity);
+            .fold(0, (acc, item) => acc + item.quantity);
 
         transaction.update(_db.collection('products').doc(productId), {
           'sizes_stock': newSizesStock,

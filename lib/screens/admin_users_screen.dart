@@ -35,48 +35,66 @@ class AdminUsersScreen extends StatelessWidget {
                   children: [
                     _buildField(nameCtrl, "Họ và tên", Icons.person_outline),
                     const SizedBox(height: 12),
-                    _buildField(emailCtrl, "Email", Icons.email_outlined,
-                        keyboard: TextInputType.emailAddress),
+                    _buildField(
+                      emailCtrl,
+                      "Email",
+                      Icons.email_outlined,
+                      keyboard: TextInputType.emailAddress,
+                    ),
                     const SizedBox(height: 12),
-                    _buildField(phoneCtrl, "Số điện thoại", Icons.phone_outlined,
-                        keyboard: TextInputType.phone),
+                    _buildField(
+                      phoneCtrl,
+                      "Số điện thoại",
+                      Icons.phone_outlined,
+                      keyboard: TextInputType.phone,
+                    ),
                     const SizedBox(height: 12),
                     DropdownButtonFormField<String>(
-                      value: selectedRole,
+                      initialValue: selectedRole,
                       decoration: const InputDecoration(
                         labelText: "Vai trò",
                         border: OutlineInputBorder(),
                         prefixIcon: Icon(Icons.badge_outlined),
                       ),
-                      items: ['staff', 'admin']
-                          .map((r) => DropdownMenuItem(
-                                value: r,
-                                child: Text(_roleLabel(r)),
-                              ))
-                          .toList(),
-                      onChanged: (v) =>
-                          setDialogState(() => selectedRole = v ?? 'staff'),
+                      items:
+                          ['staff', 'admin']
+                              .map(
+                                (r) => DropdownMenuItem(
+                                  value: r,
+                                  child: Text(_roleLabel(r)),
+                                ),
+                              )
+                              .toList(),
+                      onChanged:
+                          (v) =>
+                              setDialogState(() => selectedRole = v ?? 'staff'),
                     ),
                     const SizedBox(height: 8),
                     // Ghi chú cho admin
                     Container(
                       padding: const EdgeInsets.all(10),
                       decoration: BoxDecoration(
-                        color: Colors.blue.withOpacity(0.08),
+                        color: Colors.blue.withValues(alpha: 0.08),
                         borderRadius: BorderRadius.circular(8),
                         border: Border.all(
-                            color: Colors.blue.withOpacity(0.3)),
+                          color: Colors.blue.withValues(alpha: 0.3),
+                        ),
                       ),
                       child: const Row(
                         children: [
-                          Icon(Icons.info_outline,
-                              size: 16, color: Colors.blue),
+                          Icon(
+                            Icons.info_outline,
+                            size: 16,
+                            color: Colors.blue,
+                          ),
                           SizedBox(width: 8),
                           Expanded(
                             child: Text(
                               "Nhân viên sẽ dùng email này để tự đăng ký mật khẩu. Không cần xác thực email.",
-                              style:
-                                  TextStyle(fontSize: 12, color: Colors.blue),
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.blue,
+                              ),
                             ),
                           ),
                         ],
@@ -91,55 +109,64 @@ class AdminUsersScreen extends StatelessWidget {
                   child: const Text("Hủy"),
                 ),
                 ElevatedButton(
-                  onPressed: loading
-                      ? null
-                      : () async {
-                          if (emailCtrl.text.trim().isEmpty ||
-                              nameCtrl.text.trim().isEmpty) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                  content:
-                                      Text("Vui lòng điền đầy đủ thông tin")),
-                            );
-                            return;
-                          }
-
-                          setDialogState(() => loading = true);
-
-                          try {
-                            // Chỉ lưu Firestore — không tạo Firebase Auth
-                            // Không làm mất session admin
-                            await AuthService().createStaffRecord(
-                              email: emailCtrl.text.trim(),
-                              name: nameCtrl.text.trim(),
-                              phone: phoneCtrl.text.trim(),
-                              role: selectedRole,
-                            );
-
-                            if (ctx.mounted) Navigator.pop(ctx);
-                            if (context.mounted) {
+                  onPressed:
+                      loading
+                          ? null
+                          : () async {
+                            if (emailCtrl.text.trim().isEmpty ||
+                                nameCtrl.text.trim().isEmpty) {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 const SnackBar(
-                                    content: Text("Đã tạo hồ sơ nhân viên thành công")),
+                                  content: Text(
+                                    "Vui lòng điền đầy đủ thông tin",
+                                  ),
+                                ),
                               );
+                              return;
                             }
-                          } catch (e) {
-                            setDialogState(() => loading = false);
-                            if (context.mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(content: Text("Lỗi: $e")),
+
+                            setDialogState(() => loading = true);
+
+                            try {
+                              // Chỉ lưu Firestore — không tạo Firebase Auth
+                              // Không làm mất session admin
+                              await AuthService().createStaffRecord(
+                                email: emailCtrl.text.trim(),
+                                name: nameCtrl.text.trim(),
+                                phone: phoneCtrl.text.trim(),
+                                role: selectedRole,
                               );
+
+                              if (ctx.mounted) Navigator.pop(ctx);
+                              if (context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text(
+                                      "Đã tạo hồ sơ nhân viên thành công",
+                                    ),
+                                  ),
+                                );
+                              }
+                            } catch (e) {
+                              setDialogState(() => loading = false);
+                              if (context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text("Lỗi: $e")),
+                                );
+                              }
                             }
-                          }
-                        },
-                  child: loading
-                      ? const SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(
-                              strokeWidth: 2, color: Colors.white),
-                        )
-                      : const Text("Tạo"),
+                          },
+                  child:
+                      loading
+                          ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.white,
+                            ),
+                          )
+                          : const Text("Tạo"),
                 ),
               ],
             );
@@ -151,14 +178,14 @@ class AdminUsersScreen extends StatelessWidget {
 
   // ─── Dialog chỉnh sửa thông tin user ─────────────────────────────────────
   void _showEditDialog(
-      BuildContext context, String uid, Map<String, dynamic> data) {
-    final nameCtrl =
-        TextEditingController(text: data["name"] ?? "");
-    final phoneCtrl =
-        TextEditingController(text: data["phone"] ?? "");
-    String selectedRole = _roles.contains(data["role"])
-        ? data["role"] as String
-        : 'customer';
+    BuildContext context,
+    String uid,
+    Map<String, dynamic> data,
+  ) {
+    final nameCtrl = TextEditingController(text: data["name"] ?? "");
+    final phoneCtrl = TextEditingController(text: data["phone"] ?? "");
+    String selectedRole =
+        _roles.contains(data["role"]) ? data["role"] as String : 'customer';
     bool loading = false;
 
     showDialog(
@@ -188,24 +215,33 @@ class AdminUsersScreen extends StatelessWidget {
                     const SizedBox(height: 12),
                     _buildField(nameCtrl, "Họ và tên", Icons.person_outline),
                     const SizedBox(height: 12),
-                    _buildField(phoneCtrl, "Số điện thoại", Icons.phone_outlined,
-                        keyboard: TextInputType.phone),
+                    _buildField(
+                      phoneCtrl,
+                      "Số điện thoại",
+                      Icons.phone_outlined,
+                      keyboard: TextInputType.phone,
+                    ),
                     const SizedBox(height: 12),
                     DropdownButtonFormField<String>(
-                      value: selectedRole,
+                      initialValue: selectedRole,
                       decoration: const InputDecoration(
                         labelText: "Vai trò",
                         border: OutlineInputBorder(),
                         prefixIcon: Icon(Icons.badge_outlined),
                       ),
-                      items: _roles
-                          .map((r) => DropdownMenuItem(
-                                value: r,
-                                child: Text(_roleLabel(r)),
-                              ))
-                          .toList(),
-                      onChanged: (v) =>
-                          setDialogState(() => selectedRole = v ?? 'customer'),
+                      items:
+                          _roles
+                              .map(
+                                (r) => DropdownMenuItem(
+                                  value: r,
+                                  child: Text(_roleLabel(r)),
+                                ),
+                              )
+                              .toList(),
+                      onChanged:
+                          (v) => setDialogState(
+                            () => selectedRole = v ?? 'customer',
+                          ),
                     ),
                   ],
                 ),
@@ -216,41 +252,46 @@ class AdminUsersScreen extends StatelessWidget {
                   child: const Text("Hủy"),
                 ),
                 ElevatedButton(
-                  onPressed: loading
-                      ? null
-                      : () async {
-                          setDialogState(() => loading = true);
-                          try {
-                            await _fs.updateUserInfo(
-                              uid: uid,
-                              name: nameCtrl.text.trim(),
-                              phone: phoneCtrl.text.trim(),
-                              role: selectedRole,
-                            );
-                            if (ctx.mounted) Navigator.pop(ctx);
-                            if (context.mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                    content: Text("Cập nhật thành công")),
+                  onPressed:
+                      loading
+                          ? null
+                          : () async {
+                            setDialogState(() => loading = true);
+                            try {
+                              await _fs.updateUserInfo(
+                                uid: uid,
+                                name: nameCtrl.text.trim(),
+                                phone: phoneCtrl.text.trim(),
+                                role: selectedRole,
                               );
+                              if (ctx.mounted) Navigator.pop(ctx);
+                              if (context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text("Cập nhật thành công"),
+                                  ),
+                                );
+                              }
+                            } catch (e) {
+                              setDialogState(() => loading = false);
+                              if (context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text("Lỗi: $e")),
+                                );
+                              }
                             }
-                          } catch (e) {
-                            setDialogState(() => loading = false);
-                            if (context.mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(content: Text("Lỗi: $e")),
-                              );
-                            }
-                          }
-                        },
-                  child: loading
-                      ? const SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(
-                              strokeWidth: 2, color: Colors.white),
-                        )
-                      : const Text("Lưu"),
+                          },
+                  child:
+                      loading
+                          ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.white,
+                            ),
+                          )
+                          : const Text("Lưu"),
                 ),
               ],
             );
@@ -264,28 +305,28 @@ class AdminUsersScreen extends StatelessWidget {
   void _confirmDelete(BuildContext context, String uid, String email) {
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text("Xác nhận xóa"),
-        content: Text("Bạn có chắc muốn xóa tài khoản \"$email\" không?"),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text("Hủy"),
+      builder:
+          (ctx) => AlertDialog(
+            title: const Text("Xác nhận xóa"),
+            content: Text("Bạn có chắc muốn xóa tài khoản \"$email\" không?"),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text("Hủy"),
+              ),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                onPressed: () {
+                  _fs.deleteUser(uid);
+                  Navigator.pop(ctx);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text("Đã xóa tài khoản")),
+                  );
+                },
+                child: const Text("Xóa", style: TextStyle(color: Colors.white)),
+              ),
+            ],
           ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            onPressed: () {
-              _fs.deleteUser(uid);
-              Navigator.pop(ctx);
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text("Đã xóa tài khoản")),
-              );
-            },
-            child:
-                const Text("Xóa", style: TextStyle(color: Colors.white)),
-          ),
-        ],
-      ),
     );
   }
 
@@ -340,11 +381,12 @@ class AdminUsersScreen extends StatelessWidget {
         title: const Text("Quản lý người dùng"),
         automaticallyImplyLeading: false,
         leading: Builder(
-          builder: (ctx) => IconButton(
-            icon: const Icon(Icons.menu),
-            onPressed: () => Scaffold.of(ctx).openDrawer(),
-            tooltip: 'Menu',
-          ),
+          builder:
+              (ctx) => IconButton(
+                icon: const Icon(Icons.menu),
+                onPressed: () => Scaffold.of(ctx).openDrawer(),
+                tooltip: 'Menu',
+              ),
         ),
       ),
       floatingActionButton: FloatingActionButton.extended(
@@ -380,13 +422,13 @@ class AdminUsersScreen extends StatelessWidget {
                 elevation: 1,
                 child: ListTile(
                   leading: CircleAvatar(
-                    backgroundColor: _roleColor(role).withOpacity(0.15),
+                    backgroundColor: _roleColor(role).withValues(alpha: 0.15),
                     child: Text(
-                      (name.isNotEmpty ? name[0] : email[0])
-                          .toUpperCase(),
+                      (name.isNotEmpty ? name[0] : email[0]).toUpperCase(),
                       style: TextStyle(
-                          color: _roleColor(role),
-                          fontWeight: FontWeight.bold),
+                        color: _roleColor(role),
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
                   title: Text(
@@ -400,37 +442,47 @@ class AdminUsersScreen extends StatelessWidget {
                       // Badge role
                       Container(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 8, vertical: 3),
+                          horizontal: 8,
+                          vertical: 3,
+                        ),
                         decoration: BoxDecoration(
-                          color: _roleColor(role).withOpacity(0.12),
+                          color: _roleColor(role).withValues(alpha: 0.12),
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(
-                              color: _roleColor(role).withOpacity(0.4)),
+                            color: _roleColor(role).withValues(alpha: 0.4),
+                          ),
                         ),
                         child: Text(
                           _roleLabel(role),
                           style: TextStyle(
-                              fontSize: 11,
-                              color: _roleColor(role),
-                              fontWeight: FontWeight.w600),
+                            fontSize: 11,
+                            color: _roleColor(role),
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
                       ),
                       const SizedBox(width: 4),
                       // Edit
                       IconButton(
-                        icon:
-                            const Icon(Icons.edit, color: Colors.blue, size: 20),
+                        icon: const Icon(
+                          Icons.edit,
+                          color: Colors.blue,
+                          size: 20,
+                        ),
                         tooltip: "Chỉnh sửa",
-                        onPressed: () =>
-                            _showEditDialog(context, user.id, data),
+                        onPressed:
+                            () => _showEditDialog(context, user.id, data),
                       ),
                       // Delete
                       IconButton(
-                        icon: const Icon(Icons.delete,
-                            color: Colors.red, size: 20),
+                        icon: const Icon(
+                          Icons.delete,
+                          color: Colors.red,
+                          size: 20,
+                        ),
                         tooltip: "Xóa",
-                        onPressed: () =>
-                            _confirmDelete(context, user.id, email),
+                        onPressed:
+                            () => _confirmDelete(context, user.id, email),
                       ),
                     ],
                   ),

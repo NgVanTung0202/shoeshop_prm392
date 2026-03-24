@@ -23,7 +23,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   String _paymentMethod = 'COD';
   bool _isLoading = false;
   
-  final CartService _cartService = CartService();
+
   final FirestoreService _firestoreService = FirestoreService();
 
   List<CartItem> get _checkoutItems => widget.selectedItems;
@@ -142,7 +142,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(16),
                         boxShadow: [
-                          BoxShadow(color: Colors.grey.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 5))
+                          BoxShadow(color: Colors.grey.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, 5))
                         ]
                       ),
                       child: Column(
@@ -256,7 +256,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                     ),
                     const SizedBox(height: 12),
                     DropdownButtonFormField<String>(
-                      value: _paymentMethod,
+                      initialValue: _paymentMethod,
                       decoration: InputDecoration(
                         prefixIcon: const Icon(Icons.payment_outlined, color: Colors.blue),
                         border: _buildInputBorder(),

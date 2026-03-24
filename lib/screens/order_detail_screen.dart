@@ -180,7 +180,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(14),
                       boxShadow: [
-                        BoxShadow(color: Colors.grey.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 5))
+                        BoxShadow(color: Colors.grey.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, 5))
                       ],
                     ),
                     child: Column(
@@ -253,7 +253,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
         color: Colors.white,
         borderRadius: BorderRadius.circular(14),
         boxShadow: [
-          BoxShadow(color: Colors.grey.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 5))
+          BoxShadow(color: Colors.grey.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, 5))
         ],
       ),
       child: Column(
@@ -269,8 +269,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
               .map((d) => Padding(
                     padding: const EdgeInsets.only(bottom: 6),
                     child: Text(d, style: const TextStyle(fontSize: 14)),
-                  ))
-              .toList(),
+                  )),
         ],
       ),
     );

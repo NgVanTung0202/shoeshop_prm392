@@ -126,7 +126,7 @@ class OrderHistoryScreen extends StatelessWidget {
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(14),
                   boxShadow: [
-                    BoxShadow(color: Colors.grey.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 5))
+                    BoxShadow(color: Colors.grey.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, 5))
                   ],
                 ),
                 child: ListTile(
@@ -155,7 +155,7 @@ class OrderHistoryScreen extends StatelessWidget {
                     padding:
                         const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                     decoration: BoxDecoration(
-                      color: _getStatusColor(status).withOpacity(0.1),
+                      color: _getStatusColor(status).withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(20),
                       border: Border.all(color: _getStatusColor(status)),
                     ),

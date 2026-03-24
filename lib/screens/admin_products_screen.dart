@@ -27,7 +27,17 @@ class _AdminProductsScreenState extends State<AdminProductsScreen> {
   String _searchQuery = ''; // Đổi thành biến thường để cập nhật được
   String? _filterCategoryId;
 
-  final List<String> shoeSizes = ['36', '37', '38', '39', '40', '41', '42', '43', '44'];
+  final List<String> shoeSizes = [
+    '36',
+    '37',
+    '38',
+    '39',
+    '40',
+    '41',
+    '42',
+    '43',
+    '44',
+  ];
 
   @override
   void dispose() {
@@ -52,50 +62,55 @@ class _AdminProductsScreenState extends State<AdminProductsScreen> {
     });
   }
 
-
   void _confirmDelete(ProductModel product) {
     showDialog(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text("Xác nhận xóa"),
-        content: Text('Bạn có chắc muốn xóa "${product.name}" ?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: const Text("Hủy"),
+      builder:
+          (dialogContext) => AlertDialog(
+            title: const Text("Xác nhận xóa"),
+            content: Text('Bạn có chắc muốn xóa "${product.name}" ?'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(dialogContext),
+                child: const Text("Hủy"),
+              ),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                onPressed: () async {
+                  final messenger = ScaffoldMessenger.of(dialogContext);
+                  try {
+                    await _fs.deleteProduct(product.id, product.imageUrl);
+                    if (!mounted) return;
+                    if (!dialogContext.mounted) return;
+                    Navigator.pop(dialogContext);
+                    messenger.showSnackBar(
+                      SnackBar(
+                        content: Text('Đã xóa "${product.name}"'),
+                        backgroundColor: Colors.green.shade700,
+                      ),
+                    );
+                  } catch (e) {
+                    if (!mounted) return;
+                    if (!dialogContext.mounted) return;
+                    Navigator.pop(dialogContext);
+                    final msg =
+                        e is FirebaseException &&
+                                e.message != null &&
+                                e.message!.isNotEmpty
+                            ? e.message!
+                            : e.toString();
+                    messenger.showSnackBar(
+                      SnackBar(
+                        content: Text('Không thể xóa: $msg'),
+                        backgroundColor: Colors.red.shade800,
+                      ),
+                    );
+                  }
+                },
+                child: const Text("Xóa", style: TextStyle(color: Colors.white)),
+              ),
+            ],
           ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            onPressed: () async {
-              final messenger = ScaffoldMessenger.of(context);
-              try {
-                await _fs.deleteProduct(product.id, product.imageUrl);
-                if (!mounted) return;
-                Navigator.pop(dialogContext);
-                messenger.showSnackBar(
-                  SnackBar(
-                    content: Text('Đã xóa "${product.name}"'),
-                    backgroundColor: Colors.green.shade700,
-                  ),
-                );
-              } catch (e) {
-                if (!mounted) return;
-                Navigator.pop(dialogContext);
-                final msg = e is FirebaseException && e.message != null && e.message!.isNotEmpty
-                    ? e.message!
-                    : e.toString();
-                messenger.showSnackBar(
-                  SnackBar(
-                    content: Text('Không thể xóa: $msg'),
-                    backgroundColor: Colors.red.shade800,
-                  ),
-                );
-              }
-            },
-            child: const Text("Xóa", style: TextStyle(color: Colors.white)),
-          ),
-        ],
-      ),
     );
   }
 
@@ -105,16 +120,24 @@ class _AdminProductsScreenState extends State<AdminProductsScreen> {
     String? dialogCategoryId = isEditing ? product.categoryId : null;
     bool isSaving = false;
 
-    final nameController = TextEditingController(text: isEditing ? product.name : '');
-    final brandController = TextEditingController(text: isEditing ? product.brand : '');
-    final priceController = TextEditingController(text: isEditing ? product.price.toString() : '');
-    final descController = TextEditingController(text: isEditing ? product.description : '');
+    final nameController = TextEditingController(
+      text: isEditing ? product.name : '',
+    );
+    final brandController = TextEditingController(
+      text: isEditing ? product.brand : '',
+    );
+    final priceController = TextEditingController(
+      text: isEditing ? product.price.toString() : '',
+    );
+    final descController = TextEditingController(
+      text: isEditing ? product.description : '',
+    );
 
     final Map<String, TextEditingController> sizeControllers = {
       for (var size in shoeSizes)
         size: TextEditingController(
           text: isEditing ? (product.sizesStock[size] ?? 0).toString() : '0',
-        )
+        ),
     };
 
     _pickedProductImage = null;
@@ -122,144 +145,239 @@ class _AdminProductsScreenState extends State<AdminProductsScreen> {
 
     showDialog(
       context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setDialogState) => AlertDialog(
-          title: Text(isEditing ? "Cập nhật sản phẩm" : "Thêm giày mới"),
-          content: SizedBox(
-            width: double.maxFinite,
-            child: SingleChildScrollView(
-              child: Column(
-                children: [
-                  GestureDetector(
-                    onTap: () => _pickImage(setDialogState),
-                    child: Container(
-                      height: 140,
-                      width: double.infinity,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFF0F1F5),
-                        borderRadius: BorderRadius.circular(10),
+      builder:
+          (context) => StatefulBuilder(
+            builder:
+                (context, setDialogState) => AlertDialog(
+                  title: Text(
+                    isEditing ? "Cập nhật sản phẩm" : "Thêm giày mới",
+                  ),
+                  content: SizedBox(
+                    width: double.maxFinite,
+                    child: SingleChildScrollView(
+                      child: Column(
+                        children: [
+                          GestureDetector(
+                            onTap: () => _pickImage(setDialogState),
+                            child: Container(
+                              height: 140,
+                              width: double.infinity,
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFF0F1F5),
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child:
+                                  (_productImagePreviewBytes != null)
+                                      ? Image.memory(
+                                        _productImagePreviewBytes!,
+                                        fit: BoxFit.cover,
+                                      )
+                                      : (isEditing &&
+                                          product.imageUrl.isNotEmpty)
+                                      ? _buildStoredProductImage(
+                                        product.imageUrl,
+                                      )
+                                      : const Center(
+                                        child: Icon(
+                                          Icons.add_a_photo_outlined,
+                                          size: 40,
+                                        ),
+                                      ),
+                            ),
+                          ),
+                          const SizedBox(height: 15),
+                          StreamBuilder<List<CategoryModel>>(
+                            stream: _fs.getCategories(),
+                            builder: (context, snapshot) {
+                              if (!snapshot.hasData) {
+                                return const LinearProgressIndicator();
+                              }
+                              return DropdownButtonFormField<String>(
+                                initialValue: dialogCategoryId,
+                                hint: const Text("Chọn danh mục"),
+                                items:
+                                    snapshot.data!
+                                        .map(
+                                          (cat) => DropdownMenuItem(
+                                            value: cat.id,
+                                            child: Text(cat.name),
+                                          ),
+                                        )
+                                        .toList(),
+                                onChanged:
+                                    (val) => setDialogState(
+                                      () => dialogCategoryId = val,
+                                    ),
+                              );
+                            },
+                          ),
+                          TextField(
+                            controller: nameController,
+                            decoration: const InputDecoration(
+                              labelText: "Tên giày",
+                            ),
+                          ),
+                          TextField(
+                            controller: brandController,
+                            decoration: const InputDecoration(
+                              labelText: "Brand",
+                            ),
+                          ),
+                          TextField(
+                            controller: priceController,
+                            decoration: const InputDecoration(labelText: "Giá"),
+                            keyboardType: TextInputType.number,
+                          ),
+                          TextField(
+                            controller: descController,
+                            decoration: const InputDecoration(
+                              labelText: "Mô tả",
+                            ),
+                          ),
+                          const SizedBox(height: 20),
+                          const Align(
+                            alignment: Alignment.centerLeft,
+                            child: Text(
+                              "Kho hàng theo Size",
+                              style: TextStyle(fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+                          Wrap(
+                            spacing: 8,
+                            runSpacing: 8,
+                            children:
+                                shoeSizes
+                                    .map(
+                                      (size) => SizedBox(
+                                        width: 70,
+                                        child: TextField(
+                                          controller: sizeControllers[size],
+                                          keyboardType: TextInputType.number,
+                                          decoration: InputDecoration(
+                                            labelText: "S-$size",
+                                            border: const OutlineInputBorder(),
+                                          ),
+                                        ),
+                                      ),
+                                    )
+                                    .toList(),
+                          ),
+                        ],
                       ),
-                      child: (_productImagePreviewBytes != null)
-                          ? Image.memory(
-                              _productImagePreviewBytes!,
-                              fit: BoxFit.cover,
-                            )
-                          : (isEditing && product.imageUrl.isNotEmpty)
-                          ? _buildStoredProductImage(product.imageUrl)
-                          : const Center(child: Icon(Icons.add_a_photo_outlined, size: 40)),
                     ),
                   ),
-                  const SizedBox(height: 15),
-                  StreamBuilder<List<CategoryModel>>(
-                    stream: _fs.getCategories(),
-                    builder: (context, snapshot) {
-                      if (!snapshot.hasData) return const LinearProgressIndicator();
-                      return DropdownButtonFormField<String>(
-                        value: dialogCategoryId,
-                        hint: const Text("Chọn danh mục"),
-                        items: snapshot.data!.map((cat) => DropdownMenuItem(
-                          value: cat.id,
-                          child: Text(cat.name),
-                        )).toList(),
-                        onChanged: (val) => setDialogState(() => dialogCategoryId = val),
-                      );
-                    },
-                  ),
-                  TextField(controller: nameController, decoration: const InputDecoration(labelText: "Tên giày")),
-                  TextField(controller: brandController, decoration: const InputDecoration(labelText: "Brand")),
-                  TextField(controller: priceController, decoration: const InputDecoration(labelText: "Giá"), keyboardType: TextInputType.number),
-                  TextField(controller: descController, decoration: const InputDecoration(labelText: "Mô tả")),
-                  const SizedBox(height: 20),
-                  const Align(alignment: Alignment.centerLeft, child: Text("Kho hàng theo Size", style: TextStyle(fontWeight: FontWeight.bold))),
-                  const SizedBox(height: 10),
-                  Wrap(
-                    spacing: 8, runSpacing: 8,
-                    children: shoeSizes.map((size) => SizedBox(
-                      width: 70,
-                      child: TextField(
-                        controller: sizeControllers[size],
-                        keyboardType: TextInputType.number,
-                        decoration: InputDecoration(labelText: "S-$size", border: const OutlineInputBorder()),
-                      ),
-                    )).toList(),
-                  ),
-                ],
-              ),
-            ),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text("Hủy"),
+                    ),
+                    ElevatedButton(
+                      onPressed:
+                          isSaving
+                              ? null
+                              : () async {
+                                final messenger = ScaffoldMessenger.of(context);
+                                if (dialogCategoryId == null ||
+                                    nameController.text.isEmpty) {
+                                  if (!mounted) return;
+                                  messenger.showSnackBar(
+                                    const SnackBar(
+                                      content: Text(
+                                        'Vui lòng chọn danh mục và nhập tên sản phẩm',
+                                      ),
+                                    ),
+                                  );
+                                  return;
+                                }
+                                setDialogState(() => isSaving = true);
+                                try {
+                                  String finalImageUrl =
+                                      isEditing ? product.imageUrl : '';
+                                  if (_pickedProductImage != null) {
+                                    finalImageUrl = await _fs
+                                        .uploadImageFromXFile(
+                                          _pickedProductImage!,
+                                        );
+                                  }
+
+                                  Map<String, int> inventory = {
+                                    for (var s in shoeSizes)
+                                      s:
+                                          int.tryParse(
+                                            sizeControllers[s]!.text,
+                                          ) ??
+                                          0,
+                                  };
+
+                                  final p = ProductModel(
+                                    id: isEditing ? product.id : '',
+                                    name: nameController.text,
+                                    brand: brandController.text,
+                                    price:
+                                        double.tryParse(priceController.text) ??
+                                        0,
+                                    categoryId: dialogCategoryId!,
+                                    imageUrl: finalImageUrl,
+                                    description: descController.text,
+                                    sizesStock: inventory,
+                                  );
+
+                                  if (isEditing) {
+                                    await _fs.updateProduct(p);
+                                  } else {
+                                    await _fs.addProduct(p);
+                                  }
+
+                                  if (!mounted) return;
+                                  if (!context.mounted) return;
+                                  Navigator.pop(context);
+                                  messenger.showSnackBar(
+                                    SnackBar(
+                                      content: Text(
+                                        isEditing
+                                            ? 'Đã cập nhật sản phẩm'
+                                            : 'Đã thêm sản phẩm',
+                                      ),
+                                      backgroundColor: Colors.green.shade700,
+                                    ),
+                                  );
+                                } catch (e) {
+                                  if (!mounted) return;
+                                  final String msg;
+                                  if (e is FirebaseException) {
+                                    msg =
+                                        e.message != null &&
+                                                e.message!.isNotEmpty
+                                            ? e.message!
+                                            : 'Lỗi Firebase (${e.code})';
+                                  } else {
+                                    msg = e.toString();
+                                  }
+                                  messenger.showSnackBar(
+                                    SnackBar(
+                                      content: Text('Không thể lưu: $msg'),
+                                      backgroundColor: Colors.red.shade800,
+                                    ),
+                                  );
+                                } finally {
+                                  setDialogState(() => isSaving = false);
+                                }
+                              },
+                      child:
+                          isSaving
+                              ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              )
+                              : const Text("Lưu"),
+                    ),
+                  ],
+                ),
           ),
-          actions: [
-            TextButton(onPressed: () => Navigator.pop(context), child: const Text("Hủy")),
-            ElevatedButton(
-              onPressed: isSaving ? null : () async {
-                if (dialogCategoryId == null || nameController.text.isEmpty) {
-                  if (!mounted) return;
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Vui lòng chọn danh mục và nhập tên sản phẩm')),
-                  );
-                  return;
-                }
-                setDialogState(() => isSaving = true);
-                final messenger = ScaffoldMessenger.of(context);
-                try {
-                  String finalImageUrl = isEditing ? product.imageUrl : '';
-                  if (_pickedProductImage != null) {
-                    finalImageUrl =
-                        await _fs.uploadImageFromXFile(_pickedProductImage!);
-                  }
-
-                  Map<String, int> inventory = {for (var s in shoeSizes) s: int.tryParse(sizeControllers[s]!.text) ?? 0};
-
-                  final p = ProductModel(
-                    id: isEditing ? product.id : '',
-                    name: nameController.text,
-                    brand: brandController.text,
-                    price: double.tryParse(priceController.text) ?? 0,
-                    categoryId: dialogCategoryId!,
-                    imageUrl: finalImageUrl,
-                    description: descController.text,
-                    sizesStock: inventory,
-                  );
-
-                  if (isEditing) {
-                    await _fs.updateProduct(p);
-                  } else {
-                    await _fs.addProduct(p);
-                  }
-
-                  if (!mounted) return;
-                  Navigator.pop(context);
-                  messenger.showSnackBar(
-                    SnackBar(
-                      content: Text(
-                        isEditing ? 'Đã cập nhật sản phẩm' : 'Đã thêm sản phẩm',
-                      ),
-                      backgroundColor: Colors.green.shade700,
-                    ),
-                  );
-                } catch (e) {
-                  final String msg;
-                  if (e is FirebaseException) {
-                    msg = e.message != null && e.message!.isNotEmpty
-                        ? e.message!
-                        : 'Lỗi Firebase (${e.code})';
-                  } else {
-                    msg = e.toString();
-                  }
-                  messenger.showSnackBar(
-                    SnackBar(
-                      content: Text('Không thể lưu: $msg'),
-                      backgroundColor: Colors.red.shade800,
-                    ),
-                  );
-                } finally {
-                  setDialogState(() => isSaving = false);
-                }
-              },
-              child: isSaving ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)) : const Text("Lưu"),
-            ),
-          ],
-        ),
-      ),
     );
   }
 
@@ -268,16 +386,20 @@ class _AdminProductsScreenState extends State<AdminProductsScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFFF5F6FA),
       appBar: AppBar(
-        title: const Text("Kho Sản Phẩm", style: TextStyle(fontWeight: FontWeight.w600)),
+        title: const Text(
+          "Kho Sản Phẩm",
+          style: TextStyle(fontWeight: FontWeight.w600),
+        ),
         actions: [
           IconButton(
             icon: const Icon(Icons.data_object),
             onPressed: () async {
               // Sửa DbSeeder thành DBSeeder (viết hoa chữ B)
+              final messenger = ScaffoldMessenger.of(context);
               await DBSeeder.seedAll();
               if (mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Đã tạo data mẫu!'))
+                messenger.showSnackBar(
+                  const SnackBar(content: Text('Đã tạo data mẫu!')),
                 );
               }
             },
@@ -358,19 +480,21 @@ class _AdminProductsScreenState extends State<AdminProductsScreen> {
 
                 // Lọc theo danh mục
                 if (_filterCategoryId != null) {
-                  products = products
-                      .where((p) => p.categoryId == _filterCategoryId)
-                      .toList();
+                  products =
+                      products
+                          .where((p) => p.categoryId == _filterCategoryId)
+                          .toList();
                 }
 
                 // Tìm kiếm theo tên hoặc thương hiệu
                 if (_searchQuery.isNotEmpty) {
-                  products = products.where((p) {
-                    final name = p.name.toLowerCase();
-                    final brand = p.brand.toLowerCase();
-                    return name.contains(_searchQuery) ||
-                        brand.contains(_searchQuery);
-                  }).toList();
+                  products =
+                      products.where((p) {
+                        final name = p.name.toLowerCase();
+                        final brand = p.brand.toLowerCase();
+                        return name.contains(_searchQuery) ||
+                            brand.contains(_searchQuery);
+                      }).toList();
                 }
 
                 if (products.isEmpty) {
@@ -494,9 +618,9 @@ class _AdminProductsScreenState extends State<AdminProductsScreen> {
   /// Form sửa: ảnh đã lưu — URL Storage dùng network, ảnh mẫu trong app dùng asset.
   Widget _buildStoredProductImage(String url) {
     const double h = 140;
-    final Widget fallback = SizedBox(
+    const Widget fallback = SizedBox(
       height: h,
-      child: const Center(
+      child: Center(
         child: Icon(Icons.broken_image_outlined, color: Colors.grey, size: 40),
       ),
     );

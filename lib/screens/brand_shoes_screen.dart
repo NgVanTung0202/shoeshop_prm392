@@ -7,7 +7,7 @@ import '../services/firestore_service.dart';
 class BrandShoesScreen extends StatefulWidget {
   final Function(String name) onShoeSelected;
 
-  const BrandShoesScreen({Key? key, required this.onShoeSelected}) : super(key: key);
+  const BrandShoesScreen({super.key, required this.onShoeSelected});
 
   @override
   State<BrandShoesScreen> createState() => _BrandShoesScreenState();
@@ -87,7 +87,7 @@ class _BrandShoesScreenState extends State<BrandShoesScreen> {
                       leading: Container(
                         padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
-                          color: Colors.blue.withOpacity(0.1),
+                          color: Colors.blue.withValues(alpha: 0.1),
                           shape: BoxShape.circle,
                         ),
                         child: const Icon(Icons.shopping_bag_outlined, color: Colors.blue, size: 20),

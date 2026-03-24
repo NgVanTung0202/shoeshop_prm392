@@ -120,7 +120,7 @@ class _AdminCategoryScreenState extends State<AdminCategoryScreen> {
   void _confirmDelete(CategoryModel category) {
     if (category.id == FirestoreService.defaultUncategorizedCategoryId) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
+        const SnackBar(
           content: Text(
             'Không thể xóa danh mục mặc định "${FirestoreService.defaultUncategorizedCategoryName}".',
           ),

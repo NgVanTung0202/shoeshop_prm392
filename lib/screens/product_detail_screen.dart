@@ -65,7 +65,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                 boxShadow: const [
                   BoxShadow(color: Colors.black12, blurRadius: 10)
                 ],
-                border: Border.all(color: Colors.green.withOpacity(0.3)),
+                border: Border.all(color: Colors.green.withValues(alpha: 0.3)),
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
@@ -107,15 +107,16 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
       createdAt: DateTime.now(),
     );
 
+    final messenger = ScaffoldMessenger.of(context);
     try {
       await _fs.addReview(review);
+      if (!mounted) return;
       _reviewController.clear();
       setState(() => _currentRating = 5.0);
       FocusScope.of(context).unfocus();
       _showTopSuccessDialog('Cảm ơn bạn đã đánh giá!');
     } catch (e) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text('Lỗi khi gửi đánh giá')));
+      messenger.showSnackBar(const SnackBar(content: Text('Lỗi khi gửi đánh giá')));
     }
   }
 
@@ -137,7 +138,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
             Container(
               height: 300,
               width: double.infinity,
-              color: Colors.blue.shade50.withOpacity(0.5),
+              color: Colors.blue.shade50.withValues(alpha: 0.5),
               child: Hero(
                 tag: widget.product.id,
                 child: AnimatedOpacity(
@@ -265,8 +266,9 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                   StreamBuilder<List<ReviewModel>>(
                     stream: _fs.getProductReviews(widget.product.id),
                     builder: (context, snapshot) {
-                      if (!snapshot.hasData)
+                      if (!snapshot.hasData) {
                         return const Center(child: CircularProgressIndicator());
+                      }
                       final reviews = snapshot.data!;
                       return ListView.builder(
                         shrinkWrap: true,
