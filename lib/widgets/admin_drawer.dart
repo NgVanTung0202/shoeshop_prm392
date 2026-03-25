@@ -18,7 +18,8 @@ class AdminDrawer extends StatelessWidget {
     final user = FirebaseAuth.instance.currentUser;
     if (user != null) {
       final doc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
-      return doc.data()?['role'] ?? 'staff';
+      final role = (doc.data()?['role'] ?? 'staff').toString();
+      return role.toLowerCase().trim();
     }
     return 'staff';
   }
@@ -29,7 +30,7 @@ class AdminDrawer extends StatelessWidget {
       child: FutureBuilder<String>(
         future: _getUserRole(),
         builder: (context, snapshot) {
-          final role = snapshot.data ?? 'staff';
+          final role = (snapshot.data ?? 'staff').toString().toLowerCase().trim();
           return Container(
             color: Colors.white,
             child: Column(
