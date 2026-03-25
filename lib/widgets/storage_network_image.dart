@@ -35,9 +35,28 @@ class _StorageNetworkImageState extends State<StorageNetworkImage> {
         u.contains('firebasestorage.app');
   }
 
+  static bool _isHttpUrl(String u) {
+    return u.startsWith('http://') || u.startsWith('https://');
+  }
+
+  static bool _isGsUrl(String u) {
+    return u.startsWith('gs://');
+  }
+
+  static bool _isStoragePath(String u) {
+    return u.startsWith('images/') || u.startsWith('avatars/');
+  }
+
+  Reference _resolveStorageRef(String u) {
+    if (_isGsUrl(u) || _looksLikeFirebaseStorageUrl(u)) {
+      return FirebaseStorage.instance.refFromURL(u);
+    }
+    return FirebaseStorage.instance.ref().child(u);
+  }
+
   Future<void> _loadViaSdk() async {
     try {
-      final ref = FirebaseStorage.instance.refFromURL(widget.url);
+      final ref = _resolveStorageRef(widget.url.trim());
       final data = await ref.getData(8 * 1024 * 1024);
       if (!mounted) return;
       if (data != null && data.isNotEmpty) {
@@ -50,6 +69,8 @@ class _StorageNetworkImageState extends State<StorageNetworkImage> {
 
   @override
   Widget build(BuildContext context) {
+    final url = widget.url.trim();
+
     if (_bytes != null) {
       return Image.memory(
         _bytes!,
@@ -59,32 +80,44 @@ class _StorageNetworkImageState extends State<StorageNetworkImage> {
       );
     }
 
-    return Image.network(
-      widget.url,
-      width: widget.width,
-      height: widget.height,
-      fit: widget.fit,
-      loadingBuilder: (context, child, progress) {
-        if (progress == null) return child;
-        return SizedBox(
-          width: widget.width,
-          height: widget.height,
-          child: const Center(
-            child: SizedBox(
-              width: 22,
-              height: 22,
-              child: CircularProgressIndicator(strokeWidth: 2),
+    if (_isHttpUrl(url)) {
+      return Image.network(
+        url,
+        width: widget.width,
+        height: widget.height,
+        fit: widget.fit,
+        loadingBuilder: (context, child, progress) {
+          if (progress == null) return child;
+          return SizedBox(
+            width: widget.width,
+            height: widget.height,
+            child: const Center(
+              child: SizedBox(
+                width: 22,
+                height: 22,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              ),
             ),
-          ),
-        );
-      },
-      errorBuilder: (context, error, stackTrace) {
-        if (_looksLikeFirebaseStorageUrl(widget.url) && !_sdkLoadStarted) {
+          );
+        },
+        errorBuilder: (context, error, stackTrace) {
+          if (_looksLikeFirebaseStorageUrl(url) && !_sdkLoadStarted) {
+            _sdkLoadStarted = true;
+            _loadViaSdk();
+          }
+          return widget.fallback;
+        },
+      );
+    }
+
+    if ((_isGsUrl(url) || _isStoragePath(url)) && !_sdkLoadStarted) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted || _sdkLoadStarted) return;
           _sdkLoadStarted = true;
           _loadViaSdk();
-        }
-        return widget.fallback;
-      },
-    );
+      });
+    }
+
+    return widget.fallback;
   }
 }

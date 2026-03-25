@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../services/firestore_service.dart';
 import '../utils/format_utils.dart';
 import '../models/product_model.dart';
+import '../widgets/storage_network_image.dart';
 
 class OrderDetailScreen extends StatefulWidget {
   final String orderId;
@@ -190,7 +191,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
 
                         if (imageUrl.isEmpty) {
                           imageUrl = ProductModel.placeholderImageAsset;
-                        } else if (!imageUrl.startsWith('http')) {
+                        } else if (!ProductModel.isNetworkImageUrl(imageUrl)) {
                           imageUrl =
                               ProductModel.normalizeLocalAssetPath(imageUrl);
                         }
@@ -200,10 +201,17 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                           leading: imageUrl.isNotEmpty
                               ? ClipRRect(
                                   borderRadius: BorderRadius.circular(10),
-                                  child: imageUrl.startsWith('http')
-                                      ? Image.network(imageUrl,
-                                          width: 60, height: 60, fit: BoxFit.cover,
-                                          errorBuilder: (_, __, ___) => const Icon(Icons.image_not_supported, color: Colors.grey))
+                                  child: ProductModel.isNetworkImageUrl(imageUrl)
+                                      ? StorageNetworkImage(
+                                          url: imageUrl,
+                                          width: 60,
+                                          height: 60,
+                                          fit: BoxFit.cover,
+                                          fallback: const Icon(
+                                            Icons.image_not_supported,
+                                            color: Colors.grey,
+                                          ),
+                                        )
                                       : Image.asset(imageUrl,
                                           width: 60, height: 60, fit: BoxFit.cover,
                                           errorBuilder: (_, __, ___) => const Icon(Icons.image_not_supported, color: Colors.grey)),

@@ -87,7 +87,14 @@ class ProductModel {
 
   static bool isNetworkImageUrl(String url) {
     final u = url.trim();
-    return u.startsWith('http://') || u.startsWith('https://');
+    if (u.isEmpty) return false;
+    return u.startsWith('http://') ||
+        u.startsWith('https://') ||
+        u.startsWith('gs://') ||
+        u.contains('firebasestorage.googleapis.com') ||
+        u.contains('firebasestorage.app') ||
+        u.startsWith('images/') ||
+        u.startsWith('avatars/');
   }
 
   /// Flutter Web ghép URL `assets/` + key; nếu key bắt đầu bằng `assets/` sẽ thành `assets/assets/...` (404).
