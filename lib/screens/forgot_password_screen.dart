@@ -28,6 +28,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
 
     try {
       await _authService.sendPasswordResetEmail(email);
+      if (!mounted) return;
       setState(() => _emailSent = true);
 
       ScaffoldMessenger.of(context).showSnackBar(

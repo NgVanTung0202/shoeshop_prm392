@@ -223,7 +223,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                                             ),
                                       ),
                                     )
-                                    : Row(
+                                    : const Row(
                                       mainAxisAlignment:
                                           MainAxisAlignment.center,
                                       children: [
@@ -232,8 +232,8 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                                           color: Colors.white,
                                           size: 20,
                                         ),
-                                        const SizedBox(width: 8),
-                                        const Text(
+                                        SizedBox(width: 8),
+                                        Text(
                                           "Cập nhật mật khẩu",
                                           style: TextStyle(
                                             color: Colors.white,

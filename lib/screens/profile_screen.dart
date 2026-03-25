@@ -4,7 +4,6 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:file_selector/file_selector.dart';
-import 'dart:typed_data';
 
 import '../services/firestore_service.dart';
 
@@ -134,7 +133,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
         _pickedXFile = null;
         _pickedBytes = null;
         if (hasNewAvatar && newUrl != null) {
-          _existingAvatarUrl = newUrl;
+          // Thêm cache-busting parameter để tránh Firebase Storage cache
+          _existingAvatarUrl = "$newUrl?t=${DateTime.now().millisecondsSinceEpoch}";
           // Force Flutter tạo lại widget NetworkImage — bỏ qua cache cũ
           _avatarKey = UniqueKey();
         }
