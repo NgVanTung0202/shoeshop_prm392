@@ -79,8 +79,24 @@ class FirestoreService {
     return _db.collection("users").snapshots();
   }
 
+  /// Soft delete: đánh dấu user là inactive thay vì xóa hoàn toàn
   Future<void> deleteUser(String uid) async {
-    await _db.collection("users").doc(uid).delete();
+    try {
+      await _db.collection("users").doc(uid).update({
+        "isActive": false,
+        "deletedAt": Timestamp.now(),
+      });
+    } catch (e) {
+      // Nếu document không tồn tại, tạo mới với status inactive
+      if (e.toString().contains("not-found")) {
+        await _db.collection("users").doc(uid).set({
+          "isActive": false,
+          "deletedAt": Timestamp.now(),
+        });
+      } else {
+        rethrow;
+      }
+    }
   }
 
   Future<void> updateUserRole(String uid, String role) async {
@@ -442,7 +458,7 @@ class FirestoreService {
         // Calculate total quantity of this product ordered in this order
         int totalQuantityOrdered = cartItems
             .where((item) => item.product.id == productId)
-            .fold(0, (sum, item) => sum + item.quantity);
+            .fold(0, (acc, item) => acc + item.quantity);
 
         transaction.update(_db.collection('products').doc(productId), {
           'sizes_stock': newSizesStock,

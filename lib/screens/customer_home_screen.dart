@@ -156,7 +156,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: Colors.red.withOpacity(0.25)),
+                    border: Border.all(color: Colors.red.withValues(alpha: 0.25)),
                   ),
                   child: Row(
                     children: [
@@ -221,7 +221,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: Colors.green.withOpacity(0.25)),
+                    border: Border.all(color: Colors.green.withValues(alpha: 0.25)),
                   ),
                   child: Row(
                     children: [
@@ -575,10 +575,10 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
         margin: const EdgeInsets.only(right: 12),
         padding: const EdgeInsets.symmetric(horizontal: 20),
         decoration: BoxDecoration(
-          color: isSelected ? chipColor : chipColor.withOpacity(0.12),
+          color: isSelected ? chipColor : chipColor.withValues(alpha: 0.12),
           borderRadius: BorderRadius.circular(25),
           border: Border.all(
-            color: isSelected ? chipColor : chipColor.withOpacity(0.35),
+            color: isSelected ? chipColor : chipColor.withValues(alpha: 0.35),
           ),
         ),
         alignment: Alignment.center,
@@ -691,10 +691,10 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
             return matchCategory && matchSearch;
           }).toList();
 
-          if (_selectedSort == 'giathap') filteredProducts.sort((a, b) => a.price.compareTo(b.price));
-          else if (_selectedSort == 'giacao') filteredProducts.sort((a, b) => b.price.compareTo(a.price));
-          else if (_selectedSort == 'danhgia') filteredProducts.sort((a, b) => b.rating.compareTo(a.rating));
-          else if (_selectedSort == 'banchay') filteredProducts.sort((a, b) => b.soldCount.compareTo(a.soldCount));
+          if (_selectedSort == 'giathap') { filteredProducts.sort((a, b) => a.price.compareTo(b.price)); }
+          else if (_selectedSort == 'giacao') { filteredProducts.sort((a, b) => b.price.compareTo(a.price)); }
+          else if (_selectedSort == 'danhgia') { filteredProducts.sort((a, b) => b.rating.compareTo(a.rating)); }
+          else if (_selectedSort == 'banchay') { filteredProducts.sort((a, b) => b.soldCount.compareTo(a.soldCount)); }
 
           if (filteredProducts.isEmpty) {
             return Center(child: Text(_searchQuery.isNotEmpty ? "Không tìm thấy sản phẩm cho '$_searchQuery'" : "Chưa có sản phẩm"));
@@ -833,7 +833,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
                   if (!isFavorite) _showTopFavoriteNotice('Đã thêm sản phẩm vào yêu thích');
                 },
                 child: CircleAvatar(
-                  backgroundColor: Colors.white.withOpacity(0.85),
+                  backgroundColor: Colors.white.withValues(alpha: 0.85),
                   radius: 16,
                   child: Icon(isFavorite ? Icons.favorite : Icons.favorite_border, color: isFavorite ? Colors.red : Colors.grey, size: 18),
                 ),
@@ -846,7 +846,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
   }
 
   Widget _buildBottomNavBar() {
-    final selectedColor = Theme.of(context).primaryColor;
+
     return SafeArea(
       child: Container(
         decoration: BoxDecoration(color: Colors.white, border: Border(top: BorderSide(color: Colors.grey.shade200))),

@@ -3,7 +3,11 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../services/auth_service.dart';
 import 'register_screen.dart';
+ fix/profile-firestore-error
+import 'forgot_password_screen.dart';
+
 import 'admin_products_screen.dart';
+ main
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -16,7 +20,9 @@ class _LoginScreenState extends State<LoginScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final AuthService _authService = AuthService();
+
   bool _isLoading = false;
+  bool _obscurePassword = true; // 👁️ thêm dòng này
 
   String _loginErrorMessage(Object e) {
     if (e is FirebaseAuthException) {
@@ -54,18 +60,17 @@ class _LoginScreenState extends State<LoginScreen> {
       );
 
       if (user != null) {
-        // Lấy thông tin từ Firestore
         final userDoc = await FirebaseFirestore.instance
             .collection("users")
             .doc(user.uid)
             .get();
+
         final data = userDoc.data();
         final String role = data?["role"] ?? "customer";
 
-        // Chỉ chặn nếu tài khoản được đánh dấu cần xác thực email
-        // (flag này chỉ được set với customer mới đăng ký)
         final bool needsVerification =
-            data?["requireEmailVerification"] == true && !user.emailVerified;
+            data?["requireEmailVerification"] == true &&
+                !user.emailVerified;
 
         if (needsVerification) {
           await _authService.logout();
@@ -75,12 +80,14 @@ class _LoginScreenState extends State<LoginScreen> {
           showDialog(
             context: context,
             builder: (ctx) => AlertDialog(
-              icon: const Icon(Icons.mark_email_unread_outlined,
-                  size: 40, color: Colors.orange),
+              icon: const Icon(
+                Icons.mark_email_unread_outlined,
+                size: 40,
+                color: Colors.orange,
+              ),
               title: const Text("Email chưa xác thực"),
               content: const Text(
-                "Vui lòng kiểm tra hộp thư và bấm vào link xác thực trước khi đăng nhập.\n\n"
-                "Bạn có muốn gửi lại email xác thực không?",
+                "Vui lòng kiểm tra hộp thư và xác thực trước khi đăng nhập.\n\nBạn có muốn gửi lại email không?",
               ),
               actions: [
                 TextButton(
@@ -100,7 +107,8 @@ class _LoginScreenState extends State<LoginScreen> {
                       await _authService.logout();
                       messenger.showSnackBar(
                         const SnackBar(
-                            content: Text("Đã gửi lại email xác thực")),
+                          content: Text("Đã gửi lại email xác thực"),
+                        ),
                       );
                     } catch (_) {}
                   },
@@ -114,8 +122,8 @@ class _LoginScreenState extends State<LoginScreen> {
 
         if (!mounted) return;
 
-        // Xóa flag requireEmailVerification nếu đã xác thực thành công
-        if (user.emailVerified && data?["requireEmailVerification"] == true) {
+        if (user.emailVerified &&
+            data?["requireEmailVerification"] == true) {
           await FirebaseFirestore.instance
               .collection("users")
               .doc(user.uid)
@@ -148,45 +156,152 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Padding(
-        padding: const EdgeInsets.all(25),
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            colors: [Color(0xFF4facfe), Color(0xFF00f2fe)],
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+          ),
+        ),
         child: Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Text(
-                "SHOE SHOP",
-                style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 30),
-              TextField(
-                controller: _emailController,
-                keyboardType: TextInputType.emailAddress,
-                decoration: const InputDecoration(labelText: "Email"),
-              ),
-              const SizedBox(height: 15),
-              TextField(
-                controller: _passwordController,
-                obscureText: true,
-                decoration: const InputDecoration(labelText: "Mật khẩu"),
-              ),
-              const SizedBox(height: 25),
-              ElevatedButton(
-                onPressed: _isLoading ? null : _handleLogin,
-                child: _isLoading
-                    ? const CircularProgressIndicator()
-                    : const Text("Đăng nhập"),
-              ),
-              TextButton(
-                onPressed: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => const RegisterScreen(),
+          child: SingleChildScrollView(
+            child: Padding(
+              padding: const EdgeInsets.all(20),
+              child: Card(
+                elevation: 12,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(25),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.shopping_bag,
+                          size: 60, color: Colors.blue),
+                      const SizedBox(height: 10),
+
+                      const Text(
+                        "SHOE SHOP",
+                        style: TextStyle(
+                          fontSize: 26,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+
+                      const SizedBox(height: 30),
+
+                      /// EMAIL
+                      TextField(
+                        controller: _emailController,
+                        keyboardType: TextInputType.emailAddress,
+                        decoration: InputDecoration(
+                          prefixIcon: const Icon(Icons.email),
+                          labelText: "Email",
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                      ),
+
+                      const SizedBox(height: 15),
+
+                      /// PASSWORD 👁️
+                      TextField(
+                        controller: _passwordController,
+                        obscureText: _obscurePassword,
+                        decoration: InputDecoration(
+                          prefixIcon: const Icon(Icons.lock),
+                          labelText: "Mật khẩu",
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          suffixIcon: IconButton(
+                            icon: Icon(
+                              _obscurePassword
+                                  ? Icons.visibility_off
+                                  : Icons.visibility,
+                            ),
+                            onPressed: () {
+                              setState(() {
+                                _obscurePassword = !_obscurePassword;
+                              });
+                            },
+                          ),
+                        ),
+                      ),
+
+                      const SizedBox(height: 12),
+
+                      /// FORGOT PASSWORD LINK
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: TextButton(
+                          onPressed: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) =>
+                                  const ForgotPasswordScreen(),
+                            ),
+                          ),
+                          child: const Text(
+                            'Quên mật khẩu?',
+                            style: TextStyle(
+                              color: Colors.blue,
+                              fontSize: 14,
+                            ),
+                          ),
+                        ),
+                      ),
+
+                      const SizedBox(height: 13),
+
+                      /// BUTTON LOGIN
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            padding:
+                                const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            backgroundColor: Colors.blue,
+                          ),
+                          onPressed:
+                              _isLoading ? null : _handleLogin,
+                          child: _isLoading
+                              ? const CircularProgressIndicator(
+                                  color: Colors.white,
+                                )
+                              : const Text(
+                                  "Đăng nhập",
+                                  style: TextStyle(fontSize: 16),
+                                ),
+                        ),
+                      ),
+
+                      const SizedBox(height: 10),
+
+                      /// REGISTER
+                      TextButton(
+                        onPressed: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) =>
+                                const RegisterScreen(),
+                          ),
+                        ),
+                        child: const Text(
+                          "Chưa có tài khoản? Đăng ký",
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-                child: const Text("Chưa có tài khoản? Đăng ký"),
               ),
-            ],
+            ),
           ),
         ),
       ),

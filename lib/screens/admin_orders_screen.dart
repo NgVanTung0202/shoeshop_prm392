@@ -236,10 +236,12 @@ class _AdminOrdersScreenState extends State<AdminOrdersScreen> {
                 .orderBy('createdAt', descending: true)
                 .snapshots(),
             builder: (context, snapshot) {
-              if (snapshot.hasError)
+              if (snapshot.hasError) {
                 return Center(child: Text('Error: ${snapshot.error}'));
-              if (snapshot.connectionState == ConnectionState.waiting)
+              }
+              if (snapshot.connectionState == ConnectionState.waiting) {
                 return const Center(child: CircularProgressIndicator());
+              }
 
               var docs = snapshot.data!.docs;
               if (_filterStatus != 'Tất cả') {
@@ -301,7 +303,7 @@ class _AdminOrdersScreenState extends State<AdminOrdersScreen> {
                           padding: const EdgeInsets.symmetric(
                               horizontal: 10, vertical: 5),
                           decoration: BoxDecoration(
-                            color: _getStatusColor(status).withOpacity(0.1),
+                            color: _getStatusColor(status).withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(20),
                             border: Border.all(color: _getStatusColor(status)),
                           ),

@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:math';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
@@ -10,11 +11,11 @@ class Seeder {
     // Kiem tra xem da co du lieu hay chua tranh seed trung lap
     final snap = await db.collection('products').limit(1).get();
     if (snap.docs.isNotEmpty) {
-      print('✅ Database đã có du luu, bo qua buoc seed!');
+      debugPrint('✅ Database đã có du luu, bo qua buoc seed!');
       return;
     }
 
-    print('⏳ Dang tien hanh doc Assets va ghi vao Firestore...');
+    debugPrint('⏳ Dang tien hanh doc Assets va ghi vao Firestore...');
 
     try {
       final manifestContent = await rootBundle.loadString('AssetManifest.json');
@@ -84,10 +85,10 @@ class Seeder {
       }
 
       await batch.commit();
-      print('🚀 DA DAY THANH CONG $count SAN PHAM TU ASSETS VAO FIRESTORE!');
+      debugPrint('🚀 DA DAY THANH CONG $count SAN PHAM TU ASSETS VAO FIRESTORE!');
 
     } catch (e) {
-      print('❌ Loi khi day du lieu vao Firestore: $e');
+      debugPrint('❌ Loi khi day du lieu vao Firestore: $e');
     }
   }
 
