@@ -2,6 +2,8 @@ import 'dart:typed_data';
 
 import 'package:firebase_core/firebase_core.dart' show FirebaseException;
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../models/product_model.dart';
@@ -39,6 +41,14 @@ class _AdminProductsScreenState extends State<AdminProductsScreen> {
     '44',
   ];
 
+  Future<String> _getUserRole() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return 'customer';
+    final doc =
+        await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
+    return (doc.data()?['role'] ?? 'customer').toString().toLowerCase().trim();
+  }
+
   @override
   void dispose() {
     _searchController.dispose();
@@ -62,7 +72,18 @@ class _AdminProductsScreenState extends State<AdminProductsScreen> {
     });
   }
 
+fix/profile-firestore-error
   void _confirmDelete(ProductModel product) {
+
+
+  void _confirmDelete(ProductModel product, {required String role}) {
+    if (role != 'admin') {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Bạn không có quyền xóa sản phẩm')),
+      );
+      return;
+    }
+ main
     showDialog(
       context: context,
       builder:
@@ -383,6 +404,7 @@ class _AdminProductsScreenState extends State<AdminProductsScreen> {
 
   @override
   Widget build(BuildContext context) {
+fix/profile-firestore-error
     return Scaffold(
       backgroundColor: const Color(0xFFF5F6FA),
       appBar: AppBar(
@@ -403,17 +425,39 @@ class _AdminProductsScreenState extends State<AdminProductsScreen> {
                 );
               }
             },
+
+    return FutureBuilder<String>(
+      future: _getUserRole(),
+      builder: (context, roleSnap) {
+        final role = roleSnap.data ?? 'customer';
+        return Scaffold(
+          backgroundColor: const Color(0xFFF5F6FA),
+          appBar: AppBar(
+            title: const Text("Kho Sản Phẩm", style: TextStyle(fontWeight: FontWeight.w600)),
+            actions: [
+              IconButton(
+                icon: const Icon(Icons.data_object),
+                onPressed: () async {
+                  // Sửa DbSeeder thành DBSeeder (viết hoa chữ B)
+                  await DBSeeder.seedAll();
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Đã tạo data mẫu!'))
+                    );
+                  }
+                },
+              ),
+            ],
+ main
           ),
-        ],
-      ),
-      drawer: const AdminDrawer(selected: AdminMenuItem.products),
-      floatingActionButton: FloatingActionButton(
-        backgroundColor: Colors.black,
-        onPressed: () => _showProductForm(),
-        child: const Icon(Icons.add),
-      ),
-      body: Column(
-        children: [
+          drawer: const AdminDrawer(selected: AdminMenuItem.products),
+          floatingActionButton: FloatingActionButton(
+            backgroundColor: Colors.black,
+            onPressed: () => _showProductForm(),
+            child: const Icon(Icons.add),
+          ),
+          body: Column(
+            children: [
           // Ô tìm kiếm
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
@@ -594,14 +638,15 @@ class _AdminProductsScreenState extends State<AdminProductsScreen> {
                             ),
                             onPressed: () => _showProductForm(product: p),
                           ),
-                          IconButton(
-                            icon: const Icon(
-                              Icons.delete_outline,
-                              color: Colors.grey,
-                              size: 22,
+                          if (role == 'admin')
+                            IconButton(
+                              icon: const Icon(
+                                Icons.delete_outline,
+                                color: Colors.grey,
+                                size: 22,
+                              ),
+                              onPressed: () => _confirmDelete(p, role: role),
                             ),
-                            onPressed: () => _confirmDelete(p),
-                          ),
                         ],
                       ),
                     );
@@ -610,8 +655,10 @@ class _AdminProductsScreenState extends State<AdminProductsScreen> {
               },
             ),
           ),
-        ],
-      ),
+            ],
+          ),
+        );
+      },
     );
   }
 

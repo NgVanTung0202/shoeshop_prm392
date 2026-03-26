@@ -1,8 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../services/auth_service.dart';
 import 'register_screen.dart';
+ fix/profile-firestore-error
 import 'forgot_password_screen.dart';
+
+import 'admin_products_screen.dart';
+ main
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -18,6 +23,32 @@ class _LoginScreenState extends State<LoginScreen> {
 
   bool _isLoading = false;
   bool _obscurePassword = true; // 👁️ thêm dòng này
+
+  String _loginErrorMessage(Object e) {
+    if (e is FirebaseAuthException) {
+      switch (e.code) {
+        case 'wrong-password':
+          return 'Sai mật khẩu. Vui lòng thử lại.';
+        case 'user-not-found':
+          return 'Không tìm thấy tài khoản với email này.';
+        case 'invalid-email':
+          return 'Email không hợp lệ.';
+        case 'user-disabled':
+          return 'Tài khoản đã bị vô hiệu hóa.';
+        case 'too-many-requests':
+          return 'Bạn thử quá nhiều lần. Vui lòng đợi và thử lại.';
+        case 'network-request-failed':
+          return 'Lỗi kết nối mạng. Vui lòng kiểm tra Internet.';
+        case 'invalid-credential':
+          // Firebase mới thường trả code này khi email/mật khẩu sai
+          return 'Email hoặc mật khẩu không đúng.';
+      }
+      final msg = (e.message ?? '').trim();
+      if (msg.isNotEmpty) return msg;
+      return 'Đăng nhập thất bại. Vui lòng thử lại.';
+    }
+    return 'Đăng nhập thất bại. Vui lòng thử lại.';
+  }
 
   Future<void> _handleLogin() async {
     setState(() => _isLoading = true);
@@ -103,6 +134,11 @@ class _LoginScreenState extends State<LoginScreen> {
 
         if (role == "admin") {
           Navigator.pushReplacementNamed(context, "/admin");
+        } else if (role == "staff") {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (_) => const AdminProductsScreen()),
+          );
         } else {
           Navigator.pushReplacementNamed(context, "/home");
         }
@@ -110,7 +146,7 @@ class _LoginScreenState extends State<LoginScreen> {
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Đăng nhập thất bại: $e")),
+        SnackBar(content: Text(_loginErrorMessage(e))),
       );
     }
 

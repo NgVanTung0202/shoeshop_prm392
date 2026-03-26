@@ -186,7 +186,8 @@ class _AdminOrdersScreenState extends State<AdminOrdersScreen> {
 
                 final userData = userSnapshot.data?.data() ?? {};
                 final role = (userData['role'] ?? '').toString().toLowerCase();
-                if (role != 'admin') {
+                const allowedRoles = {'admin', 'staff'};
+                if (!allowedRoles.contains(role)) {
                   return const Center(
                     child: Text('Bạn không có quyền truy cập màn hình này'),
                   );
