@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
@@ -41,8 +40,8 @@ class MyApp extends StatelessWidget {
         ),
       ),
 
-
-      home: const CustomerHomeScreen(),
+      // ✅ Đã sửa: trỏ về LoginScreen thay vì CustomerHomeScreen
+      home: const LoginScreen(),
 
       // Định nghĩa các tuyến đường (routes) để dễ dàng chuyển màn hình
       routes: {
