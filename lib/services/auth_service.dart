@@ -206,7 +206,11 @@ class AuthService {
   }
 
   Future<void> logout() async {
-    await _googleSignIn.signOut();
+    try {
+      await _googleSignIn.signOut();
+    } catch (_) {
+      // Ignore GoogleSignIn-specific errors on unsupported platforms/sessions.
+    }
     await _auth.signOut();
   }
 

@@ -90,7 +90,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
   Future<void> _handleLogout() async {
     await _authService.logout();
     if (!mounted) return;
-    Navigator.pushReplacementNamed(context, '/login');
+    Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
   }
 
   @override
