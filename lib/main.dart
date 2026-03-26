@@ -40,8 +40,7 @@ class MyApp extends StatelessWidget {
         ),
       ),
 
-      // ✅ Đã sửa: trỏ về LoginScreen thay vì CustomerHomeScreen
-      home: const LoginScreen(),
+      home: const CustomerHomeScreen(),
 
       // Định nghĩa các tuyến đường (routes) để dễ dàng chuyển màn hình
       routes: {

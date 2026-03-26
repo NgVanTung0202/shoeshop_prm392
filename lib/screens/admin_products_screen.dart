@@ -1,6 +1,5 @@
 import 'dart:typed_data';
 
-import 'package:firebase_core/firebase_core.dart' show FirebaseException;
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -9,7 +8,6 @@ import 'package:image_picker/image_picker.dart';
 import '../models/product_model.dart';
 import '../models/category_model.dart';
 import '../services/firestore_service.dart';
-import '../services/db_seeder.dart';
 import '../widgets/admin_drawer.dart';
 import '../widgets/storage_network_image.dart';
 
@@ -72,10 +70,6 @@ class _AdminProductsScreenState extends State<AdminProductsScreen> {
     });
   }
 
-fix/profile-firestore-error
-  void _confirmDelete(ProductModel product) {
-
-
   void _confirmDelete(ProductModel product, {required String role}) {
     if (role != 'admin') {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -83,7 +77,6 @@ fix/profile-firestore-error
       );
       return;
     }
- main
     showDialog(
       context: context,
       builder:
@@ -170,8 +163,16 @@ fix/profile-firestore-error
           (context) => StatefulBuilder(
             builder:
                 (context, setDialogState) => AlertDialog(
+                  backgroundColor: const Color(0xFFF8FBFF),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(18),
+                  ),
                   title: Text(
                     isEditing ? "Cập nhật sản phẩm" : "Thêm giày mới",
+                    style: const TextStyle(
+                      color: Colors.blue,
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
                   content: SizedBox(
                     width: double.maxFinite,
@@ -184,8 +185,12 @@ fix/profile-firestore-error
                               height: 140,
                               width: double.infinity,
                               decoration: BoxDecoration(
-                                color: const Color(0xFFF0F1F5),
-                                borderRadius: BorderRadius.circular(10),
+                                color: Colors.blue.shade50,
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                  color: Colors.blue.shade200,
+                                  width: 1.2,
+                                ),
                               ),
                               child:
                                   (_productImagePreviewBytes != null)
@@ -216,6 +221,33 @@ fix/profile-firestore-error
                               return DropdownButtonFormField<String>(
                                 initialValue: dialogCategoryId,
                                 hint: const Text("Chọn danh mục"),
+                                decoration: InputDecoration(
+                                  prefixIcon: const Icon(
+                                    Icons.category_outlined,
+                                    color: Colors.blue,
+                                  ),
+                                  filled: true,
+                                  fillColor: Colors.white,
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                    borderSide: BorderSide(
+                                      color: Colors.blue.shade200,
+                                    ),
+                                  ),
+                                  enabledBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                    borderSide: BorderSide(
+                                      color: Colors.blue.shade200,
+                                    ),
+                                  ),
+                                  focusedBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                    borderSide: const BorderSide(
+                                      color: Colors.blue,
+                                      width: 2,
+                                    ),
+                                  ),
+                                ),
                                 items:
                                     snapshot.data!
                                         .map(
@@ -234,25 +266,130 @@ fix/profile-firestore-error
                           ),
                           TextField(
                             controller: nameController,
-                            decoration: const InputDecoration(
+                            decoration: InputDecoration(
                               labelText: "Tên giày",
+                              prefixIcon: const Icon(
+                                Icons.shopping_bag_outlined,
+                                color: Colors.blue,
+                              ),
+                              filled: true,
+                              fillColor: Colors.white,
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: BorderSide(
+                                  color: Colors.blue.shade200,
+                                ),
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: BorderSide(
+                                  color: Colors.blue.shade200,
+                                ),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: const BorderSide(
+                                  color: Colors.blue,
+                                  width: 2,
+                                ),
+                              ),
                             ),
                           ),
+                          const SizedBox(height: 10),
                           TextField(
                             controller: brandController,
-                            decoration: const InputDecoration(
+                            decoration: InputDecoration(
                               labelText: "Brand",
+                              prefixIcon: const Icon(
+                                Icons.local_offer_outlined,
+                                color: Colors.blue,
+                              ),
+                              filled: true,
+                              fillColor: Colors.white,
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: BorderSide(
+                                  color: Colors.blue.shade200,
+                                ),
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: BorderSide(
+                                  color: Colors.blue.shade200,
+                                ),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: const BorderSide(
+                                  color: Colors.blue,
+                                  width: 2,
+                                ),
+                              ),
                             ),
                           ),
+                          const SizedBox(height: 10),
                           TextField(
                             controller: priceController,
-                            decoration: const InputDecoration(labelText: "Giá"),
+                            decoration: InputDecoration(
+                              labelText: "Giá",
+                              prefixIcon: const Icon(
+                                Icons.payments_outlined,
+                                color: Colors.blue,
+                              ),
+                              filled: true,
+                              fillColor: Colors.white,
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: BorderSide(
+                                  color: Colors.blue.shade200,
+                                ),
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: BorderSide(
+                                  color: Colors.blue.shade200,
+                                ),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: const BorderSide(
+                                  color: Colors.blue,
+                                  width: 2,
+                                ),
+                              ),
+                            ),
                             keyboardType: TextInputType.number,
                           ),
+                          const SizedBox(height: 10),
                           TextField(
                             controller: descController,
-                            decoration: const InputDecoration(
+                            decoration: InputDecoration(
                               labelText: "Mô tả",
+                              prefixIcon: const Icon(
+                                Icons.description_outlined,
+                                color: Colors.blue,
+                              ),
+                              filled: true,
+                              fillColor: Colors.white,
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: BorderSide(
+                                  color: Colors.blue.shade200,
+                                ),
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: BorderSide(
+                                  color: Colors.blue.shade200,
+                                ),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: const BorderSide(
+                                  color: Colors.blue,
+                                  width: 2,
+                                ),
+                              ),
                             ),
                           ),
                           const SizedBox(height: 20),
@@ -260,7 +397,10 @@ fix/profile-firestore-error
                             alignment: Alignment.centerLeft,
                             child: Text(
                               "Kho hàng theo Size",
-                              style: TextStyle(fontWeight: FontWeight.bold),
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: Colors.blue,
+                              ),
                             ),
                           ),
                           const SizedBox(height: 10),
@@ -277,7 +417,30 @@ fix/profile-firestore-error
                                           keyboardType: TextInputType.number,
                                           decoration: InputDecoration(
                                             labelText: "S-$size",
-                                            border: const OutlineInputBorder(),
+                                            filled: true,
+                                            fillColor: Colors.white,
+                                            border: OutlineInputBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(10),
+                                              borderSide: BorderSide(
+                                                color: Colors.blue.shade200,
+                                              ),
+                                            ),
+                                            enabledBorder: OutlineInputBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(10),
+                                              borderSide: BorderSide(
+                                                color: Colors.blue.shade200,
+                                              ),
+                                            ),
+                                            focusedBorder: const OutlineInputBorder(
+                                              borderRadius:
+                                                  BorderRadius.all(Radius.circular(10)),
+                                              borderSide: BorderSide(
+                                                color: Colors.blue,
+                                                width: 2,
+                                              ),
+                                            ),
                                           ),
                                         ),
                                       ),
@@ -291,9 +454,22 @@ fix/profile-firestore-error
                   actions: [
                     TextButton(
                       onPressed: () => Navigator.pop(context),
-                      child: const Text("Hủy"),
+                      child: const Text(
+                        "Hủy",
+                        style: TextStyle(
+                          color: Colors.blueGrey,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
                     ),
                     ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.blue,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
                       onPressed:
                           isSaving
                               ? null
@@ -404,28 +580,6 @@ fix/profile-firestore-error
 
   @override
   Widget build(BuildContext context) {
-fix/profile-firestore-error
-    return Scaffold(
-      backgroundColor: const Color(0xFFF5F6FA),
-      appBar: AppBar(
-        title: const Text(
-          "Kho Sản Phẩm",
-          style: TextStyle(fontWeight: FontWeight.w600),
-        ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.data_object),
-            onPressed: () async {
-              // Sửa DbSeeder thành DBSeeder (viết hoa chữ B)
-              final messenger = ScaffoldMessenger.of(context);
-              await DBSeeder.seedAll();
-              if (mounted) {
-                messenger.showSnackBar(
-                  const SnackBar(content: Text('Đã tạo data mẫu!')),
-                );
-              }
-            },
-
     return FutureBuilder<String>(
       future: _getUserRole(),
       builder: (context, roleSnap) {
@@ -434,28 +588,16 @@ fix/profile-firestore-error
           backgroundColor: const Color(0xFFF5F6FA),
           appBar: AppBar(
             title: const Text("Kho Sản Phẩm", style: TextStyle(fontWeight: FontWeight.w600)),
-            actions: [
-              IconButton(
-                icon: const Icon(Icons.data_object),
-                onPressed: () async {
-                  // Sửa DbSeeder thành DBSeeder (viết hoa chữ B)
-                  await DBSeeder.seedAll();
-                  if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Đã tạo data mẫu!'))
-                    );
-                  }
-                },
-              ),
-            ],
- main
           ),
           drawer: const AdminDrawer(selected: AdminMenuItem.products),
-          floatingActionButton: FloatingActionButton(
-            backgroundColor: Colors.black,
-            onPressed: () => _showProductForm(),
-            child: const Icon(Icons.add),
-          ),
+          floatingActionButton:
+              role == 'admin'
+                  ? FloatingActionButton(
+                    backgroundColor: Colors.black,
+                    onPressed: () => _showProductForm(),
+                    child: const Icon(Icons.add),
+                  )
+                  : null,
           body: Column(
             children: [
           // Ô tìm kiếm
@@ -630,14 +772,15 @@ fix/profile-firestore-error
                             ),
                           ),
                           const SizedBox(width: 8),
-                          IconButton(
-                            icon: const Icon(
-                              Icons.edit_outlined,
-                              color: Colors.grey,
-                              size: 22,
+                          if (role == 'admin')
+                            IconButton(
+                              icon: const Icon(
+                                Icons.edit_outlined,
+                                color: Colors.grey,
+                                size: 22,
+                              ),
+                              onPressed: () => _showProductForm(product: p),
                             ),
-                            onPressed: () => _showProductForm(product: p),
-                          ),
                           if (role == 'admin')
                             IconButton(
                               icon: const Icon(

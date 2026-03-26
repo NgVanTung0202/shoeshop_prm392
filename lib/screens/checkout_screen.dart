@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../services/cart_service.dart';
 import '../services/firestore_service.dart';
 import '../utils/format_utils.dart';
@@ -22,7 +23,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   
   String _paymentMethod = 'COD';
   bool _isLoading = false;
-  
+  static final RegExp _phoneRegex = RegExp(r'^(0|\+84)\d{9,10}$');
 
   final FirestoreService _firestoreService = FirestoreService();
 
@@ -31,13 +32,14 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   double _selectedTotalPrice() {
     return _checkoutItems.fold<double>(
       0,
-      (sum, item) => sum + (item.product.price * item.quantity),
+      (total, item) => total + (item.product.price * item.quantity),
     );
   }
 
   @override
   void initState() {
     super.initState();
+    _prefillReceiverInfo();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (_checkoutItems.isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -46,6 +48,34 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         Navigator.pop(context);
       }
     });
+  }
+
+  Future<void> _prefillReceiverInfo() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    try {
+      final doc = await FirebaseFirestore.instance
+          .collection("users")
+          .doc(user.uid)
+          .get();
+      final data = doc.data();
+      if (!mounted || data == null) return;
+
+      final String name = (data["name"] ?? "").toString().trim();
+      final String phone = (data["phone"] ?? "").toString().trim();
+
+      setState(() {
+        if (_receiverNameController.text.trim().isEmpty && name.isNotEmpty) {
+          _receiverNameController.text = name;
+        }
+        if (_phoneController.text.trim().isEmpty && phone.isNotEmpty) {
+          _phoneController.text = phone;
+        }
+      });
+    } catch (_) {
+      // Ignore prefill failures, user can still type manually.
+    }
   }
 
   @override
@@ -228,8 +258,11 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                         fillColor: Colors.white,
                       ),
                       validator: (value) {
-                        if (value == null || value.trim().isEmpty) return 'Vui lòng nhập số điện thoại';
-                        if (value.length < 8) return 'Số điện thoại không hợp lệ';
+                        final phone = (value ?? '').trim().replaceAll(' ', '');
+                        if (phone.isEmpty) return 'Vui lòng nhập số điện thoại';
+                        if (!_phoneRegex.hasMatch(phone)) {
+                          return 'Số điện thoại không hợp lệ (VD: 09xxxxxxxx hoặc +84xxxxxxxxx)';
+                        }
                         return null;
                       },
                     ),

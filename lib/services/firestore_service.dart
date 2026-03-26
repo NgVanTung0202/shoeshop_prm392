@@ -453,16 +453,11 @@ class FirestoreService {
         updatedSizesStock[item.product.id] = sizesStock;
       }
 
-      // 3. Apply deductions and increase sold count
+      // 3. Apply stock deductions only.
+      // soldCount is updated later when order reaches "Giao hàng thành công".
       updatedSizesStock.forEach((productId, newSizesStock) {
-        // Calculate total quantity of this product ordered in this order
-        int totalQuantityOrdered = cartItems
-            .where((item) => item.product.id == productId)
-            .fold(0, (acc, item) => acc + item.quantity);
-
         transaction.update(_db.collection('products').doc(productId), {
           'sizes_stock': newSizesStock,
-          'soldCount': FieldValue.increment(totalQuantityOrdered), // Fix: actually increase soldCount!
         });
       });
 
@@ -525,34 +520,45 @@ class FirestoreService {
 
       // Get all items to restore stock
       final itemsQuery = await orderRef.collection('items').get();
+      // Read all product docs first (Firestore transaction rule: all reads before writes)
+      final Map<String, Map<String, int>> restoredStocks = {};
+      for (final itemDoc in itemsQuery.docs) {
+        final itemData = itemDoc.data();
+        final productId = itemData['productId']?.toString() ?? '';
+        final size = itemData['size']?.toString() ?? '';
+        final qty = (itemData['quantity'] as num?)?.toInt() ?? 0;
+        if (productId.isEmpty || size.isEmpty || qty <= 0) continue;
 
-      // Update order status
+        restoredStocks.putIfAbsent(productId, () {
+          return <String, int>{};
+        });
+
+        if (restoredStocks[productId]!.isEmpty) {
+          final productRef = _db.collection('products').doc(productId);
+          final productDoc = await transaction.get(productRef);
+          if (productDoc.exists) {
+            final pData = productDoc.data() as Map<String, dynamic>;
+            if (pData['sizes_stock'] != null) {
+              restoredStocks[productId] =
+                  Map<String, int>.from(pData['sizes_stock']);
+            }
+          }
+        }
+
+        restoredStocks[productId]![size] =
+            (restoredStocks[productId]![size] ?? 0) + qty;
+      }
+
+      // Writes after reads
       transaction.update(orderRef, {
         'status': 'Đã hủy',
         'updatedAt': FieldValue.serverTimestamp(),
       });
 
-      // Read current products to restore
-      for (var itemDoc in itemsQuery.docs) {
-        final itemData = itemDoc.data();
-        final productId = itemData['productId'];
-        final size = itemData['size'];
-        final qty = itemData['quantity'] as int;
-
-        final productRef = _db.collection('products').doc(productId);
-        final productDoc = await transaction.get(productRef);
-
-        if (productDoc.exists) {
-          final pData = productDoc.data() as Map<String, dynamic>;
-          Map<String, int> sizesStock = {};
-          if (pData['sizes_stock'] != null) {
-            sizesStock = Map<String, int>.from(pData['sizes_stock']);
-          }
-
-          sizesStock[size] = (sizesStock[size] ?? 0) + qty;
-
-          transaction.update(productRef, {'sizes_stock': sizesStock});
-        }
+      for (final entry in restoredStocks.entries) {
+        transaction.update(_db.collection('products').doc(entry.key), {
+          'sizes_stock': entry.value,
+        });
       }
     });
   }
@@ -576,33 +582,76 @@ class FirestoreService {
             'Invalid status transition: $currentStatus -> $normalizedStatus');
       }
 
+      final bool isDeliveredSuccess = normalizedStatus == 'Giao hàng thành công';
+      final bool isCancelled = normalizedStatus == 'Đã hủy';
+
+      QuerySnapshot<Map<String, dynamic>>? itemsQuery;
+      if (isDeliveredSuccess || isCancelled) {
+        itemsQuery = await orderRef.collection('items').get();
+      }
+
+      final Map<String, int> soldByProduct = <String, int>{};
+      final Map<String, Map<String, int>> restoredStocks = {};
+
+      if (isDeliveredSuccess && itemsQuery != null) {
+        for (final itemDoc in itemsQuery.docs) {
+          final itemData = itemDoc.data();
+          final productId = itemData['productId']?.toString() ?? '';
+          final qty = (itemData['quantity'] as num?)?.toInt() ?? 0;
+          if (productId.isEmpty || qty <= 0) continue;
+          soldByProduct[productId] = (soldByProduct[productId] ?? 0) + qty;
+        }
+      }
+
+      if (isCancelled && itemsQuery != null) {
+        for (final itemDoc in itemsQuery.docs) {
+          final itemData = itemDoc.data();
+          final productId = itemData['productId']?.toString() ?? '';
+          final size = itemData['size']?.toString() ?? '';
+          final qty = (itemData['quantity'] as num?)?.toInt() ?? 0;
+          if (productId.isEmpty || size.isEmpty || qty <= 0) continue;
+
+          restoredStocks.putIfAbsent(productId, () {
+            return <String, int>{};
+          });
+
+          if (restoredStocks[productId]!.isEmpty) {
+            final productRef = _db.collection('products').doc(productId);
+            final productDoc = await transaction.get(productRef);
+            if (productDoc.exists) {
+              final pData = productDoc.data() as Map<String, dynamic>;
+              if (pData['sizes_stock'] != null) {
+                restoredStocks[productId] =
+                    Map<String, int>.from(pData['sizes_stock']);
+              }
+            }
+          }
+
+          restoredStocks[productId]![size] =
+              (restoredStocks[productId]![size] ?? 0) + qty;
+        }
+      }
+
+      // Writes after all reads
       transaction.update(orderRef, {
         'status': normalizedStatus,
         'updatedAt': FieldValue.serverTimestamp(),
       });
 
-      if (normalizedStatus == 'Đã hủy') {
-        // Restore stock
-        final itemsQuery = await orderRef.collection('items').get();
-        for (var itemDoc in itemsQuery.docs) {
-          final itemData = itemDoc.data();
-          final productId = itemData['productId'];
-          final size = itemData['size'];
-          final qty = itemData['quantity'] as int;
+      if (isDeliveredSuccess) {
+        // Increase soldCount only when delivery is completed successfully.
+        for (final entry in soldByProduct.entries) {
+          transaction.update(_db.collection('products').doc(entry.key), {
+            'soldCount': FieldValue.increment(entry.value),
+          });
+        }
+      }
 
-          final productRef = _db.collection('products').doc(productId);
-          final productDoc = await transaction.get(productRef);
-
-          if (productDoc.exists) {
-            final pData = productDoc.data() as Map<String, dynamic>;
-            Map<String, int> sizesStock = {};
-            if (pData['sizes_stock'] != null) {
-              sizesStock = Map<String, int>.from(pData['sizes_stock']);
-            }
-            sizesStock[size] = (sizesStock[size] ?? 0) + qty;
-
-            transaction.update(productRef, {'sizes_stock': sizesStock});
-          }
+      if (isCancelled) {
+        for (final entry in restoredStocks.entries) {
+          transaction.update(_db.collection('products').doc(entry.key), {
+            'sizes_stock': entry.value,
+          });
         }
       }
     });

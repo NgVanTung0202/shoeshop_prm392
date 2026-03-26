@@ -314,6 +314,14 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                   borderRadius: BorderRadius.circular(12)),
             ),
             onPressed: widget.product.getTotalStock() <= 0 ? null : () {
+              if (FirebaseAuth.instance.currentUser == null) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Vui lòng đăng nhập để thêm vào giỏ hàng'),
+                  ),
+                );
+                return;
+              }
               if (_selectedSize == null) {
                 ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(content: Text('Vui lòng chọn size')));

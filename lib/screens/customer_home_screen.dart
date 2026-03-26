@@ -41,6 +41,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
 
   int _currentBannerIndex = 0;
   final PageController _pageController = PageController();
+  final ScrollController _productScrollController = ScrollController();
   Timer? _bannerTimer;
 
   User? get currentUser => FirebaseAuth.instance.currentUser;
@@ -96,6 +97,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
   void dispose() {
     _bannerTimer?.cancel();
     _pageController.dispose();
+    _productScrollController.dispose();
     _searchController.dispose();
     super.dispose();
   }
@@ -328,6 +330,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
   }
 
   Widget _buildDrawer() {
+    final isGuest = currentUser == null;
     return Drawer(
       child: Column(
         children: [
@@ -375,44 +378,47 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
               );
             },
           ),
-          ListTile(
-            leading: const Icon(Icons.history, color: Colors.blue),
-            title: const Text("Lịch sử đơn hàng"),
-            onTap: () {
-              Navigator.pop(context);
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const OrderHistoryScreen()),
-              );
-            },
-          ),
-          ListTile(
-            leading: const Icon(Icons.person, color: Colors.blue),
-            title: const Text("Thông tin cá nhân"),
-            onTap: () {
-              Navigator.pop(context);
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const ProfileScreen()),
-              ).then((_) => _loadUserInfo());
-            },
-          ),
-          ListTile(
-            leading: const Icon(Icons.lock, color: Colors.orange),
-            title: const Text("Đổi mật khẩu"),
-            onTap: () {
-              Navigator.pop(context);
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const ChangePasswordScreen()),
-              );
-            },
-          ),
+          if (!isGuest)
+            ListTile(
+              leading: const Icon(Icons.history, color: Colors.blue),
+              title: const Text("Lịch sử đơn hàng"),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const OrderHistoryScreen()),
+                );
+              },
+            ),
+          if (!isGuest)
+            ListTile(
+              leading: const Icon(Icons.person, color: Colors.blue),
+              title: const Text("Thông tin cá nhân"),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const ProfileScreen()),
+                ).then((_) => _loadUserInfo());
+              },
+            ),
+          if (!isGuest)
+            ListTile(
+              leading: const Icon(Icons.lock, color: Colors.orange),
+              title: const Text("Đổi mật khẩu"),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const ChangePasswordScreen()),
+                );
+              },
+            ),
           const Divider(),
-          currentUser == null
+          isGuest
               ? ListTile(
                   leading: const Icon(Icons.login, color: Colors.green),
-                  title: const Text("Đăng nhập ngay"),
+                  title: const Text("Đăng nhập"),
                   onTap: () => Navigator.pushNamed(context, '/login'),
                 )
               : ListTile(
@@ -465,7 +471,8 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
       child: PageView.builder(
         controller: _pageController,
         onPageChanged: (index) {
-          setState(() => _currentBannerIndex = index);
+          // Keep banner index for auto-scroll logic without rebuilding whole screen.
+          _currentBannerIndex = index;
         },
         itemCount: 5,
         itemBuilder: (context, index) {
@@ -701,6 +708,8 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
           }
 
           return GridView.builder(
+            key: const PageStorageKey<String>('customer_home_product_grid'),
+            controller: _productScrollController,
             padding: const EdgeInsets.all(16),
             gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: 2, childAspectRatio: 0.66, mainAxisSpacing: 14, crossAxisSpacing: 14,
@@ -777,6 +786,16 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
                           ),
                           InkWell(
                             onTap: () {
+                              if (currentUser == null) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text(
+                                      'Vui lòng đăng nhập để thêm sản phẩm vào giỏ hàng',
+                                    ),
+                                  ),
+                                );
+                                return;
+                              }
                               if (product.getTotalStock() <= 0) {
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   const SnackBar(
@@ -854,14 +873,10 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
           children: [
             _buildNavItem(0, Icons.home_outlined, () => setState(() => _selectedNavIndex = 0)),
             _buildNavItem(1, Icons.shopping_cart_outlined, () async {
-              setState(() => _selectedNavIndex = 1);
               await _openCartScreen();
-              if (mounted) setState(() => _selectedNavIndex = 0);
             }, badgeCount: _cartService.getTotalItems()),
             _buildNavItem(2, Icons.person_outline, () async {
-              setState(() => _selectedNavIndex = 2);
               await Navigator.push(context, MaterialPageRoute(builder: (_) => const ProfileScreen()));
-              if (mounted) setState(() => _selectedNavIndex = 0);
             }),
           ],
         ),
