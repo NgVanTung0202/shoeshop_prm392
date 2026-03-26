@@ -151,7 +151,11 @@ class AdminDrawer extends StatelessWidget {
                         onTap: () async {
                           await AuthService().logout();
                           if (context.mounted) {
-                            Navigator.pushReplacementNamed(context, '/login');
+                            Navigator.pushNamedAndRemoveUntil(
+                              context,
+                              '/login',
+                              (route) => false,
+                            );
                           }
                         },
                       ),
