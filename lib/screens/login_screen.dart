@@ -3,11 +3,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../services/auth_service.dart';
 import 'register_screen.dart';
- fix/profile-firestore-error
 import 'forgot_password_screen.dart';
-
 import 'admin_products_screen.dart';
- main
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});

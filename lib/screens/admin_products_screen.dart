@@ -1,6 +1,5 @@
 import 'dart:typed_data';
 
-import 'package:firebase_core/firebase_core.dart' show FirebaseException;
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -9,7 +8,6 @@ import 'package:image_picker/image_picker.dart';
 import '../models/product_model.dart';
 import '../models/category_model.dart';
 import '../services/firestore_service.dart';
-import '../services/db_seeder.dart';
 import '../widgets/admin_drawer.dart';
 import '../widgets/storage_network_image.dart';
 
@@ -72,10 +70,6 @@ class _AdminProductsScreenState extends State<AdminProductsScreen> {
     });
   }
 
-fix/profile-firestore-error
-  void _confirmDelete(ProductModel product) {
-
-
   void _confirmDelete(ProductModel product, {required String role}) {
     if (role != 'admin') {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -83,7 +77,6 @@ fix/profile-firestore-error
       );
       return;
     }
- main
     showDialog(
       context: context,
       builder:
@@ -404,28 +397,6 @@ fix/profile-firestore-error
 
   @override
   Widget build(BuildContext context) {
-fix/profile-firestore-error
-    return Scaffold(
-      backgroundColor: const Color(0xFFF5F6FA),
-      appBar: AppBar(
-        title: const Text(
-          "Kho Sản Phẩm",
-          style: TextStyle(fontWeight: FontWeight.w600),
-        ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.data_object),
-            onPressed: () async {
-              // Sửa DbSeeder thành DBSeeder (viết hoa chữ B)
-              final messenger = ScaffoldMessenger.of(context);
-              await DBSeeder.seedAll();
-              if (mounted) {
-                messenger.showSnackBar(
-                  const SnackBar(content: Text('Đã tạo data mẫu!')),
-                );
-              }
-            },
-
     return FutureBuilder<String>(
       future: _getUserRole(),
       builder: (context, roleSnap) {
@@ -434,28 +405,16 @@ fix/profile-firestore-error
           backgroundColor: const Color(0xFFF5F6FA),
           appBar: AppBar(
             title: const Text("Kho Sản Phẩm", style: TextStyle(fontWeight: FontWeight.w600)),
-            actions: [
-              IconButton(
-                icon: const Icon(Icons.data_object),
-                onPressed: () async {
-                  // Sửa DbSeeder thành DBSeeder (viết hoa chữ B)
-                  await DBSeeder.seedAll();
-                  if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Đã tạo data mẫu!'))
-                    );
-                  }
-                },
-              ),
-            ],
- main
           ),
           drawer: const AdminDrawer(selected: AdminMenuItem.products),
-          floatingActionButton: FloatingActionButton(
-            backgroundColor: Colors.black,
-            onPressed: () => _showProductForm(),
-            child: const Icon(Icons.add),
-          ),
+          floatingActionButton:
+              role == 'admin'
+                  ? FloatingActionButton(
+                    backgroundColor: Colors.black,
+                    onPressed: () => _showProductForm(),
+                    child: const Icon(Icons.add),
+                  )
+                  : null,
           body: Column(
             children: [
           // Ô tìm kiếm
@@ -630,14 +589,15 @@ fix/profile-firestore-error
                             ),
                           ),
                           const SizedBox(width: 8),
-                          IconButton(
-                            icon: const Icon(
-                              Icons.edit_outlined,
-                              color: Colors.grey,
-                              size: 22,
+                          if (role == 'admin')
+                            IconButton(
+                              icon: const Icon(
+                                Icons.edit_outlined,
+                                color: Colors.grey,
+                                size: 22,
+                              ),
+                              onPressed: () => _showProductForm(product: p),
                             ),
-                            onPressed: () => _showProductForm(product: p),
-                          ),
                           if (role == 'admin')
                             IconButton(
                               icon: const Icon(
