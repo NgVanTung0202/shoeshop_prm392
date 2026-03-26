@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/services.dart';
 import '../services/auth_service.dart';
 import 'register_screen.dart';
 import 'forgot_password_screen.dart';
@@ -44,7 +45,100 @@ class _LoginScreenState extends State<LoginScreen> {
       if (msg.isNotEmpty) return msg;
       return 'Đăng nhập thất bại. Vui lòng thử lại.';
     }
+    if (e is PlatformException) {
+      if (e.code == 'sign_in_failed' &&
+          (e.message?.contains('ApiException: 10') ?? false)) {
+        return 'Google Sign-In chưa cấu hình đúng (SHA-1/SHA-256 hoặc google-services.json).';
+      }
+      final platformMsg = (e.message ?? '').trim();
+      if (platformMsg.isNotEmpty) return platformMsg;
+    }
+    final msg = e.toString().replaceFirst('Exception: ', '').trim();
+    if (msg.isNotEmpty) return msg;
     return 'Đăng nhập thất bại. Vui lòng thử lại.';
+  }
+
+  Future<void> _handleLoginSuccess(User user) async {
+    final userDoc = await FirebaseFirestore.instance
+        .collection("users")
+        .doc(user.uid)
+        .get();
+
+    final data = userDoc.data();
+    final String role = data?["role"] ?? "customer";
+
+    final bool needsVerification =
+        data?["requireEmailVerification"] == true && !user.emailVerified;
+
+    if (needsVerification) {
+      await _authService.logout();
+      if (!mounted) return;
+      setState(() => _isLoading = false);
+
+      showDialog(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          icon: const Icon(
+            Icons.mark_email_unread_outlined,
+            size: 40,
+            color: Colors.orange,
+          ),
+          title: const Text("Email chưa xác thực"),
+          content: const Text(
+            "Vui lòng kiểm tra hộp thư và xác thực trước khi đăng nhập.\n\nBạn có muốn gửi lại email không?",
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text("Đóng"),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                Navigator.pop(ctx);
+                final messenger = ScaffoldMessenger.of(context);
+                try {
+                  final tempUser = await _authService.signIn(
+                    _emailController.text.trim(),
+                    _passwordController.text.trim(),
+                  );
+                  await tempUser?.sendEmailVerification();
+                  await _authService.logout();
+                  messenger.showSnackBar(
+                    const SnackBar(
+                      content: Text("Đã gửi lại email xác thực"),
+                    ),
+                  );
+                } catch (_) {}
+              },
+              child: const Text("Gửi lại"),
+            ),
+          ],
+        ),
+      );
+      return;
+    }
+
+    if (!mounted) return;
+
+    if (user.emailVerified && data?["requireEmailVerification"] == true) {
+      await FirebaseFirestore.instance
+          .collection("users")
+          .doc(user.uid)
+          .update({"requireEmailVerification": false});
+    }
+
+    if (!mounted) return;
+
+    if (role == "admin") {
+      Navigator.pushReplacementNamed(context, "/admin");
+    } else if (role == "staff") {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const AdminProductsScreen()),
+      );
+    } else {
+      Navigator.pushReplacementNamed(context, "/home");
+    }
   }
 
   Future<void> _handleLogin() async {
@@ -57,88 +151,7 @@ class _LoginScreenState extends State<LoginScreen> {
       );
 
       if (user != null) {
-        final userDoc = await FirebaseFirestore.instance
-            .collection("users")
-            .doc(user.uid)
-            .get();
-
-        final data = userDoc.data();
-        final String role = data?["role"] ?? "customer";
-
-        final bool needsVerification =
-            data?["requireEmailVerification"] == true &&
-                !user.emailVerified;
-
-        if (needsVerification) {
-          await _authService.logout();
-          if (!mounted) return;
-          setState(() => _isLoading = false);
-
-          showDialog(
-            context: context,
-            builder: (ctx) => AlertDialog(
-              icon: const Icon(
-                Icons.mark_email_unread_outlined,
-                size: 40,
-                color: Colors.orange,
-              ),
-              title: const Text("Email chưa xác thực"),
-              content: const Text(
-                "Vui lòng kiểm tra hộp thư và xác thực trước khi đăng nhập.\n\nBạn có muốn gửi lại email không?",
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(ctx),
-                  child: const Text("Đóng"),
-                ),
-                ElevatedButton(
-                  onPressed: () async {
-                    Navigator.pop(ctx);
-                    final messenger = ScaffoldMessenger.of(context);
-                    try {
-                      final tempUser = await _authService.signIn(
-                        _emailController.text.trim(),
-                        _passwordController.text.trim(),
-                      );
-                      await tempUser?.sendEmailVerification();
-                      await _authService.logout();
-                      messenger.showSnackBar(
-                        const SnackBar(
-                          content: Text("Đã gửi lại email xác thực"),
-                        ),
-                      );
-                    } catch (_) {}
-                  },
-                  child: const Text("Gửi lại"),
-                ),
-              ],
-            ),
-          );
-          return;
-        }
-
-        if (!mounted) return;
-
-        if (user.emailVerified &&
-            data?["requireEmailVerification"] == true) {
-          await FirebaseFirestore.instance
-              .collection("users")
-              .doc(user.uid)
-              .update({"requireEmailVerification": false});
-        }
-
-        if (!mounted) return;
-
-        if (role == "admin") {
-          Navigator.pushReplacementNamed(context, "/admin");
-        } else if (role == "staff") {
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(builder: (_) => const AdminProductsScreen()),
-          );
-        } else {
-          Navigator.pushReplacementNamed(context, "/home");
-        }
+        await _handleLoginSuccess(user);
       }
     } catch (e) {
       if (!mounted) return;
@@ -147,6 +160,22 @@ class _LoginScreenState extends State<LoginScreen> {
       );
     }
 
+    if (mounted) setState(() => _isLoading = false);
+  }
+
+  Future<void> _handleGoogleLogin() async {
+    setState(() => _isLoading = true);
+    try {
+      final user = await _authService.signInWithGoogle();
+      if (user != null) {
+        await _handleLoginSuccess(user);
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(_loginErrorMessage(e))),
+      );
+    }
     if (mounted) setState(() => _isLoading = false);
   }
 
@@ -276,6 +305,23 @@ class _LoginScreenState extends State<LoginScreen> {
                                   "Đăng nhập",
                                   style: TextStyle(fontSize: 16),
                                 ),
+                        ),
+                      ),
+
+                      const SizedBox(height: 10),
+
+                      SizedBox(
+                        width: double.infinity,
+                        child: OutlinedButton.icon(
+                          onPressed: _isLoading ? null : _handleGoogleLogin,
+                          icon: const Icon(Icons.g_mobiledata, size: 24),
+                          label: const Text("Đăng nhập với Google"),
+                          style: OutlinedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
                         ),
                       ),
 

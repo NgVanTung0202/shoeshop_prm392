@@ -1,9 +1,11 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 
 class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _db = FirebaseFirestore.instance;
+  final GoogleSignIn _googleSignIn = GoogleSignIn();
 
   /// Đăng ký cho KHÁCH HÀNG — gửi email xác thực, đăng xuất ngay
   /// Nếu email đã được admin tạo sẵn (pendingAuth=true) → gán role đúng, không gửi email xác thực
@@ -136,7 +138,75 @@ class AuthService {
     return credential.user;
   }
 
+  Future<User?> signInWithGoogle() async {
+    final googleUser = await _googleSignIn.signIn();
+    if (googleUser == null) return null;
+
+    final googleAuth = await googleUser.authentication;
+    final credential = GoogleAuthProvider.credential(
+      accessToken: googleAuth.accessToken,
+      idToken: googleAuth.idToken,
+    );
+
+    final userCredential = await _auth.signInWithCredential(credential);
+    final user = userCredential.user;
+    if (user == null) return null;
+
+    final userRef = _db.collection("users").doc(user.uid);
+    final userDoc = await userRef.get();
+
+    if (userDoc.exists) {
+      final isActive = userDoc.data()?["isActive"] ?? true;
+      if (!isActive) {
+        await logout();
+        throw Exception(
+          "Tài khoản này đã bị vô hiệu hóa. Vui lòng liên hệ admin.",
+        );
+      }
+      return user;
+    }
+
+    String role = "customer";
+    String name = user.displayName ?? user.email?.split('@').first ?? "User";
+    String phone = user.phoneNumber ?? "";
+    bool isActive = true;
+
+    if (user.email != null && user.email!.trim().isNotEmpty) {
+      final existingByEmail = await _db
+          .collection("users")
+          .where("email", isEqualTo: user.email!.trim())
+          .limit(1)
+          .get();
+      if (existingByEmail.docs.isNotEmpty) {
+        final existingData = existingByEmail.docs.first.data();
+        role = (existingData["role"] ?? role).toString();
+        name = (existingData["name"] ?? name).toString();
+        phone = (existingData["phone"] ?? phone).toString();
+        isActive = (existingData["isActive"] ?? true) == true;
+      }
+    }
+
+    if (!isActive) {
+      await logout();
+      throw Exception(
+        "Tài khoản này đã bị vô hiệu hóa. Vui lòng liên hệ admin.",
+      );
+    }
+
+    await userRef.set({
+      "email": user.email,
+      "name": name,
+      "phone": phone,
+      "role": role,
+      "isActive": true,
+      "createdAt": Timestamp.now(),
+    }, SetOptions(merge: true));
+
+    return user;
+  }
+
   Future<void> logout() async {
+    await _googleSignIn.signOut();
     await _auth.signOut();
   }
 

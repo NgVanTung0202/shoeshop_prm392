@@ -9,6 +9,12 @@ class AdminDashboardScreen extends StatelessWidget {
   AdminDashboardScreen({super.key});
 
   final FirestoreService _fs = FirestoreService();
+  bool _isDeliveredSuccess(String status) {
+    final normalized = status.trim().toLowerCase();
+    return normalized == 'giao hàng thành công' ||
+        normalized == 'completed' ||
+        normalized == 'hoàn thành';
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -34,8 +40,10 @@ class AdminDashboardScreen extends StatelessWidget {
           }
 
           final orders = snapshot.data!;
+          final completedOrders =
+              orders.where((o) => _isDeliveredSuccess(o.status)).toList();
           double totalRevenue = 0;
-          for (var o in orders) {
+          for (var o in completedOrders) {
             totalRevenue += o.totalPrice;
           }
 
@@ -52,7 +60,7 @@ class AdminDashboardScreen extends StatelessWidget {
             ordersByDate[date] = 0;
           }
 
-          for (var o in orders) {
+          for (var o in completedOrders) {
             final orderDate = DateTime(
               o.createdAt.year,
               o.createdAt.month,
@@ -96,7 +104,7 @@ class AdminDashboardScreen extends StatelessWidget {
                     Expanded(
                       child: _buildStatCard(
                         "Tổng Đơn Hàng",
-                        "${orders.length}",
+                        "${completedOrders.length}",
                         Icons.shopping_bag,
                         Colors.orange,
                       ),

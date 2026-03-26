@@ -163,8 +163,16 @@ class _AdminProductsScreenState extends State<AdminProductsScreen> {
           (context) => StatefulBuilder(
             builder:
                 (context, setDialogState) => AlertDialog(
+                  backgroundColor: const Color(0xFFF8FBFF),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(18),
+                  ),
                   title: Text(
                     isEditing ? "Cập nhật sản phẩm" : "Thêm giày mới",
+                    style: const TextStyle(
+                      color: Colors.blue,
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
                   content: SizedBox(
                     width: double.maxFinite,
@@ -177,8 +185,12 @@ class _AdminProductsScreenState extends State<AdminProductsScreen> {
                               height: 140,
                               width: double.infinity,
                               decoration: BoxDecoration(
-                                color: const Color(0xFFF0F1F5),
-                                borderRadius: BorderRadius.circular(10),
+                                color: Colors.blue.shade50,
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                  color: Colors.blue.shade200,
+                                  width: 1.2,
+                                ),
                               ),
                               child:
                                   (_productImagePreviewBytes != null)
@@ -209,6 +221,33 @@ class _AdminProductsScreenState extends State<AdminProductsScreen> {
                               return DropdownButtonFormField<String>(
                                 initialValue: dialogCategoryId,
                                 hint: const Text("Chọn danh mục"),
+                                decoration: InputDecoration(
+                                  prefixIcon: const Icon(
+                                    Icons.category_outlined,
+                                    color: Colors.blue,
+                                  ),
+                                  filled: true,
+                                  fillColor: Colors.white,
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                    borderSide: BorderSide(
+                                      color: Colors.blue.shade200,
+                                    ),
+                                  ),
+                                  enabledBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                    borderSide: BorderSide(
+                                      color: Colors.blue.shade200,
+                                    ),
+                                  ),
+                                  focusedBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                    borderSide: const BorderSide(
+                                      color: Colors.blue,
+                                      width: 2,
+                                    ),
+                                  ),
+                                ),
                                 items:
                                     snapshot.data!
                                         .map(
@@ -227,25 +266,130 @@ class _AdminProductsScreenState extends State<AdminProductsScreen> {
                           ),
                           TextField(
                             controller: nameController,
-                            decoration: const InputDecoration(
+                            decoration: InputDecoration(
                               labelText: "Tên giày",
+                              prefixIcon: const Icon(
+                                Icons.shopping_bag_outlined,
+                                color: Colors.blue,
+                              ),
+                              filled: true,
+                              fillColor: Colors.white,
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: BorderSide(
+                                  color: Colors.blue.shade200,
+                                ),
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: BorderSide(
+                                  color: Colors.blue.shade200,
+                                ),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: const BorderSide(
+                                  color: Colors.blue,
+                                  width: 2,
+                                ),
+                              ),
                             ),
                           ),
+                          const SizedBox(height: 10),
                           TextField(
                             controller: brandController,
-                            decoration: const InputDecoration(
+                            decoration: InputDecoration(
                               labelText: "Brand",
+                              prefixIcon: const Icon(
+                                Icons.local_offer_outlined,
+                                color: Colors.blue,
+                              ),
+                              filled: true,
+                              fillColor: Colors.white,
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: BorderSide(
+                                  color: Colors.blue.shade200,
+                                ),
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: BorderSide(
+                                  color: Colors.blue.shade200,
+                                ),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: const BorderSide(
+                                  color: Colors.blue,
+                                  width: 2,
+                                ),
+                              ),
                             ),
                           ),
+                          const SizedBox(height: 10),
                           TextField(
                             controller: priceController,
-                            decoration: const InputDecoration(labelText: "Giá"),
+                            decoration: InputDecoration(
+                              labelText: "Giá",
+                              prefixIcon: const Icon(
+                                Icons.payments_outlined,
+                                color: Colors.blue,
+                              ),
+                              filled: true,
+                              fillColor: Colors.white,
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: BorderSide(
+                                  color: Colors.blue.shade200,
+                                ),
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: BorderSide(
+                                  color: Colors.blue.shade200,
+                                ),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: const BorderSide(
+                                  color: Colors.blue,
+                                  width: 2,
+                                ),
+                              ),
+                            ),
                             keyboardType: TextInputType.number,
                           ),
+                          const SizedBox(height: 10),
                           TextField(
                             controller: descController,
-                            decoration: const InputDecoration(
+                            decoration: InputDecoration(
                               labelText: "Mô tả",
+                              prefixIcon: const Icon(
+                                Icons.description_outlined,
+                                color: Colors.blue,
+                              ),
+                              filled: true,
+                              fillColor: Colors.white,
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: BorderSide(
+                                  color: Colors.blue.shade200,
+                                ),
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: BorderSide(
+                                  color: Colors.blue.shade200,
+                                ),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: const BorderSide(
+                                  color: Colors.blue,
+                                  width: 2,
+                                ),
+                              ),
                             ),
                           ),
                           const SizedBox(height: 20),
@@ -253,7 +397,10 @@ class _AdminProductsScreenState extends State<AdminProductsScreen> {
                             alignment: Alignment.centerLeft,
                             child: Text(
                               "Kho hàng theo Size",
-                              style: TextStyle(fontWeight: FontWeight.bold),
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: Colors.blue,
+                              ),
                             ),
                           ),
                           const SizedBox(height: 10),
@@ -270,7 +417,30 @@ class _AdminProductsScreenState extends State<AdminProductsScreen> {
                                           keyboardType: TextInputType.number,
                                           decoration: InputDecoration(
                                             labelText: "S-$size",
-                                            border: const OutlineInputBorder(),
+                                            filled: true,
+                                            fillColor: Colors.white,
+                                            border: OutlineInputBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(10),
+                                              borderSide: BorderSide(
+                                                color: Colors.blue.shade200,
+                                              ),
+                                            ),
+                                            enabledBorder: OutlineInputBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(10),
+                                              borderSide: BorderSide(
+                                                color: Colors.blue.shade200,
+                                              ),
+                                            ),
+                                            focusedBorder: const OutlineInputBorder(
+                                              borderRadius:
+                                                  BorderRadius.all(Radius.circular(10)),
+                                              borderSide: BorderSide(
+                                                color: Colors.blue,
+                                                width: 2,
+                                              ),
+                                            ),
                                           ),
                                         ),
                                       ),
@@ -284,9 +454,22 @@ class _AdminProductsScreenState extends State<AdminProductsScreen> {
                   actions: [
                     TextButton(
                       onPressed: () => Navigator.pop(context),
-                      child: const Text("Hủy"),
+                      child: const Text(
+                        "Hủy",
+                        style: TextStyle(
+                          color: Colors.blueGrey,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
                     ),
                     ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.blue,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
                       onPressed:
                           isSaving
                               ? null
